@@ -64,7 +64,7 @@ def main():
     # 最終確認：新しい課題で成功率を測る
     final = K.Skill.from_unit(es.result.xfavorite)
     _, succ, res = K.evaluate(es.result.xfavorite, 12345, 12, 24)
-    stable = succ >= args.target
+    stable = bool(succ >= args.target)
     final.save({"pretrain_log": log, "final_success": succ, "stable": stable,
                 "final_tasks": [{k: v for k, v in r.items()} for r in res]})
     print(f"\n最終テスト（駒24個・12課題）の成功率 {succ:.2f} → {'安定' if stable else 'まだ不安定'}")

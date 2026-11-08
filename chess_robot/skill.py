@@ -67,7 +67,8 @@ class Skill:
 
     def save(self, info):
         DATA.mkdir(exist_ok=True)
-        SKILL_FILE.write_text(json.dumps({"params": asdict(self), **info}, indent=2, ensure_ascii=False))
+        params = {k: float(v) for k, v in asdict(self).items()}
+        SKILL_FILE.write_text(json.dumps({"params": params, **info}, indent=2, ensure_ascii=False, default=float))
 
 
 # ---------------------------------------------------------------- 課題：ランダム配置で指定の駒を指定マスへ
@@ -128,8 +129,8 @@ class TaskEnv:
         dur = self.d.time - t0
         ok = err < 0.003 and upright and disturb < 0.003
         cost = min(err, 0.05) / 0.003 + 2.0 * (not upright) + min(disturb, 0.1) / 0.003 + 0.02 * dur
-        return dict(cost=cost, success=ok, err_mm=err * 1000, disturb_mm=disturb * 1000,
-                    upright=upright, time_s=dur)
+        return dict(cost=float(cost), success=bool(ok), err_mm=round(err * 1000, 2),
+                    disturb_mm=round(disturb * 1000, 2), upright=bool(upright), time_s=round(float(dur), 2))
 
 
 def evaluate(u, seed, n_tasks, n_pieces):

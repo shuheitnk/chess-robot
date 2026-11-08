@@ -6,8 +6,6 @@ import argparse
 import sys
 from pathlib import Path
 
-import imageio
-
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from chess_robot.sim_game import Game  # noqa: E402
 
@@ -23,7 +21,7 @@ def main():
     ap.add_argument("--height", type=int, default=720)
     args = ap.parse_args()
 
-    g = Game(record=True, size=(args.width, args.height))
+    g = Game(record=args.out, size=(args.width, args.height))
     for i, san in enumerate(OPENING[:args.plies]):
         mv = g.board.parse_san(san)
         n = i // 2 + 1
@@ -34,7 +32,7 @@ def main():
         err, sq = g.check()
         print(f"{g.caption:10s} 最大のずれ {err:.1f} mm ({sq})")
     g.hold(1.5)
-    imageio.mimsave(args.out, g.frames, fps=30, quality=8)
+    g.close()
     print("saved", args.out)
 
 

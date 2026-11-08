@@ -15,7 +15,8 @@ from .skill import Skill
 
 
 class Game:
-    def __init__(self, record=False, size=(1280, 720), skill=None):
+    def __init__(self, record=None, size=(1280, 720), skill=None, fps=30):
+        """record: 動画の保存先（None なら録画しない）。フレームはその場でファイルに書き出す"""
         self.m = mujoco.MjModel.from_xml_path(str(B.SCENE))
         self.d = mujoco.MjData(self.m)
         self.arm = R.Arm(self.m, self.d)
@@ -36,8 +37,11 @@ class Game:
         self.tray_used = {True: 0, False: 0}
         self.caption = ""
         self.sub = ""
-        self.frames = []
-        self.record = record
+        self.record = bool(record)
+        self.writer = None
+        if record:
+            import imageio
+            self.writer = imageio.get_writer(str(record), fps=fps, quality=8, macro_block_size=8)
         self.viewer_sync = None
         if record:
             self.r = mujoco.Renderer(self.m, size[1], size[0])
@@ -67,7 +71,7 @@ class Game:
             dr.text((40, 34), self.caption, fill=(240, 236, 228), font=self.font)
             if self.sub:
                 dr.text((42, 74), self.sub, fill=(170, 170, 175), font=self.font_s)
-        self.frames.append(np.asarray(img))
+        self.writer.append_data(np.asarray(img))
 
     def hold(self, secs):
         self.mv.hold(secs)
@@ -163,3 +167,8 @@ class Game:
         if n:
             mujoco.mj_forward(self.m, self.d)
         return n
+
+    def close(self):
+        if self.writer:
+            self.writer.close()
+            self.writer = None

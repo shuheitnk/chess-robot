@@ -68,7 +68,7 @@ def main():
             print("（--force で、仮の技能のまま対局することもできます）")
             return
         from chess_robot.sim_game import Game
-        g = Game(record=bool(args.record), skill=skill)
+        g = Game(record=args.record, skill=skill)
         if not args.record:
             import mujoco.viewer
             viewer = mujoco.viewer.launch_passive(g.m, g.d)
@@ -119,9 +119,8 @@ def main():
     print("頭脳を更新しました" if updated else "（この局の結果は、次の対局と比べてから学習に使います）")
     print(brain.report())
     if g and args.record:
-        import imageio
         g.hold(1.0)
-        imageio.mimsave(args.record, g.frames, fps=30, quality=8)
+        g.close()
         print("動画を保存しました:", args.record)
 
 

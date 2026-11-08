@@ -1,0 +1,15 @@
+[project]
+name = "chess-robot"
+version = "0.1.0"
+description = "SO-101 robot arm that plays chess in physics simulation and grows only through games with you"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "mujoco>=3.1",
+    "chess>=1.10",
+    "numpy>=1.26",
+    "cma>=3.3",
+    "imageio>=2.34",
+    "imageio-ffmpeg>=0.5",
+    "pillow>=10",
+]

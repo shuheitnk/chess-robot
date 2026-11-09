@@ -191,7 +191,8 @@ class Game:
     # ------------------------------------------------------------ 駒を動かす
     def robot_carry(self, name, dst, from_sq, to_sq, carry, move_info):
         """アームで1つ運び、結果を判定する。失敗したら場面を記録する"""
-        others = [n for n in self.at.values() if n != name]
+        # 運ぶ前から倒れている駒は、この動作のせいにしない
+        others = [n for n in self.at.values() if n != name and not P.fallen(self.d, n)]
         before = {n: self.d.body(n).xpos.copy() for n in [name, *others]}
         snap = P.layout(self.d, [name, *others])
         where = {**self.square_of(), name: chess.square_name(from_sq)}
@@ -218,22 +219,26 @@ class Game:
                 skill={k: round(float(v), 5) for k, v in vars(self.skill).items()}))
         return res
 
-    def hand_carry(self, name, dst, secs=1.2):
-        """ユーザの手：駒を持ち上げて弧を描いて運ぶ（物理ではなく位置を直接動かす）"""
+    def hand_carry(self, name, dst, secs=1.2, lift=0.06):
+        """ユーザの手：駒を真上に持ち上げ、どの駒よりも高い所を運んで、真下に降ろす
+        （物理ではなく位置を直接動かす。低い所を斜めに運ぶと、隣の駒をこすって倒してしまうため）"""
         a, v = self.qadr[name], self.vadr[name]
         p0 = self.d.qpos[a:a + 3].copy()
         quat = self.d.qpos[a + 3:a + 7].copy()
         p1 = np.array([dst[0], dst[1], B.BOARD_TOP])
-        n = int(secs / self.m.opt.timestep)
-        for i in range(n):
-            s = (i + 1) / n
-            s = s * s * (3 - 2 * s)
-            p = p0 + (p1 - p0) * s
-            p[2] = p0[2] + (p1[2] - p0[2]) * s + 0.05 * np.sin(np.pi * s)
-            self.d.qpos[a:a + 3] = p
-            self.d.qpos[a + 3:a + 7] = quat
-            self.d.qvel[v:v + 6] = 0
-            self.mv.step()
+        top = B.BOARD_TOP + lift                     # 駒の底がいちばん高い駒（キング 4cm）より上を通る
+        path = [(np.array([p0[0], p0[1], top]), 0.3), (np.array([p1[0], p1[1], top]), 0.45), (p1, 0.25)]
+        cur = p0
+        for target, share in path:
+            n = max(1, int(secs * share / self.m.opt.timestep))
+            for i in range(n):
+                s = (i + 1) / n
+                s = s * s * (3 - 2 * s)
+                self.d.qpos[a:a + 3] = cur + (target - cur) * s
+                self.d.qpos[a + 3:a + 7] = quat
+                self.d.qvel[v:v + 6] = 0
+                self.mv.step()
+            cur = target
 
     def play(self, move, by_robot):
         """move を盤上で実行する。by_robot=True ならアーム、False なら見えない手で動かす。
@@ -241,6 +246,8 @@ class Game:
         b = self.board
         info = dict(ply=len(b.move_stack) + 1, move_no=b.fullmove_number, san=b.san(move), uci=move.uci())
         results = []
+        if by_robot and self.fix():                    # 指す前に盤を整える（実機なら人が直しておく）
+            self.hold(0.1)
 
         def carry(name, dst, from_sq, to_sq, kind):
             if by_robot:

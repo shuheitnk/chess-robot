@@ -1,4 +1,5 @@
 """KOMA の画面のページと、記録から作るデータ（JSON）"""
+from .morning import morning
 
 
 def last_night():
@@ -12,8 +13,10 @@ PAGES = {
     "/": "redirect:/play",
     "/play": "play.html",
     "/night": "night.html",
+    "/morning": "morning.html",
 }
 
 APIS = {
     "/api/night": last_night,
+    "/api/morning": morning,
 }

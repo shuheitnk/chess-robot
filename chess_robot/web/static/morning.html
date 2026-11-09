@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KOMA · Morning Report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+Symbols+2&family=Space+Grotesk:wght@300;400;500&display=swap">
+<link rel="stylesheet" href="/koma.css">
+<link rel="stylesheet" href="/morning.css">
+</head>
+<body class="morning">
+<!-- スマホ：要約の画面 -->
+<section class="phone">
+  <div class="phone-top"><span class="lbl blue">KOMA · Morning report</span><span class="lbl" id="p-date">—</span></div>
+  <svg class="p-ring" id="p-ring" viewBox="0 0 240 240" aria-hidden="true"></svg>
+  <h1 class="p-h1" id="p-head">Good morning.</h1>
+  <p class="p-body" id="p-body"></p>
+  <div class="p-stats" id="p-stats"></div>
+  <a class="btn primary p-open" href="#report">Open report <span>→</span></a>
+  <div class="lbl p-foot" id="p-foot">—</div>
+</section>
+
+<div id="report">
+<header class="top">
+  <a class="brand" href="/play"><span data-logo></span><b>KOMA</b></a>
+  <span class="divider"></span>
+  <span class="lbl blue unit" id="unit">Morning report · Day —</span>
+  <nav class="lbl"><a href="/play">Play</a><a href="/night">Night</a><a class="on" href="/morning">Morning</a></nav>
+  <div class="status lbl"><span id="date">—</span></div>
+</header>
+
+<main class="mo">
+  <section class="hero">
+    <div>
+      <div class="lbl">— Good morning</div>
+      <h1 id="head">Good morning.</h1>
+      <p id="body">—</p>
+    </div>
+    <div class="cta">
+      <a class="btn primary" href="/play">Start today’s game <span>→</span></a>
+      <a class="btn" href="/night">See last night’s practice</a>
+    </div>
+  </section>
+
+  <section class="kpis" id="kpis"></section>
+
+  <div class="two">
+    <section>
+      <div class="sh lbl"><span class="n">01</span><span>Reward</span><span class="rule"></span><span class="r">Daily average · captured − lost</span></div>
+      <svg class="chart" id="chart" viewBox="0 0 560 190" aria-label="Daily average reward"></svg>
+    </section>
+    <section>
+      <div class="sh lbl"><span class="n">02</span><span>Values</span><span class="rule"></span><span class="r legend"><i class="old"></i><span id="old-lbl">A week ago</span><i class="new"></i>Today</span></div>
+      <div class="vh">How my values changed</div>
+      <div id="values"></div>
+    </section>
+  </div>
+
+  <div class="two">
+    <section>
+      <div class="sh lbl"><span class="n">03</span><span>Lesson</span><span class="rule"></span><span class="r">The game I learned most from</span></div>
+      <div class="lesson" id="lesson"></div>
+    </section>
+    <section>
+      <div class="sh lbl"><span class="n">04</span><span>Timeline</span><span class="rule"></span><span class="r">How KOMA grew</span></div>
+      <div class="timeline" id="timeline"></div>
+    </section>
+  </div>
+</main>
+</div>
+
+<script src="/koma.js"></script>
+<script src="/morning.js"></script>
+</body>
+</html>

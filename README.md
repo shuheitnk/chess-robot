@@ -90,6 +90,15 @@ uv run python scripts/night_practice.py      # 寝る前に。15世代・候補8
 - 画面：成功率のリング（外側＝今、内側＝練習前）、世代の進み、世代ごとの成功率、練習中の場面（SOLVED / PRACTICING / QUEUED）、今いちばん良いパラメータ8つと変化量。練習が終わったあとは、`play.py` の画面の Night からも最後の結果を見られます
 - オプション：`--gens`（世代数）、`--popsize`（候補の数）、`--cases`（一晩の場面の数）、`--random`（混ぜるランダムな盤）、`--workers`（並列の数）
 
+### 朝のレポート（成長の記録）
+
+`play.py` の画面の **Morning**（`http://127.0.0.1:8765/morning`）で見られます。`history.jsonl`・`night_log.jsonl`・`brain.json` だけから作り、記録がないところは「—」です。
+
+- 「Good morning.」＋ KOMA のひとこと（昨夜の練習の結果と、重みがいちばん変わったことから組み立てる）
+- 数字4つ：対局数（＋昨日の局数）、直近10局の平均報酬（1週間前と比べて）、技能の成功率と1回の時間（昨夜のテスト。夜の練習がまだなら事前学習のテスト）
+- 日ごとの平均報酬、1週間前（生まれて1週間たっていなければ生まれたとき）と今日の重み、いちばん学んだ対局（重みがいちばん動いた局）、成長の記録（初めての対局・初めて重みが変わった日・平均報酬が初めてプラスになった日・初めての夜の練習…を自動で拾う）
+- スマホでは要約（何日目・ひとこと・数字3つ）が先に出て、「Open report」で詳しいレポートへ
+
 ### 育てたデータの保存場所
 
 技能・頭脳・対局の記録は、リポジトリの外の `~/.chess-robot/`（Windows なら `C:\Users\<ユーザ名>\.chess-robot\`）に保存されます。
@@ -150,6 +159,7 @@ uv run python tests/test_web_play.py --text   # 画面のサーバを立ち上�
 uv run python tests/test_web_play.py          # 同じことを物理シミュレーションありで（数分）
 uv run python tests/test_practice_cases.py    # 倒れ・ずれの判定と直し、失敗した場面の記録と再現
 uv run python tests/test_night.py             # 夜の練習を短く回す（2世代・候補4。数分）
+uv run python tests/test_morning.py           # 朝のレポート（記録なし／何日分かの記録）
 ```
 
 テストは一時フォルダをデータの場所にして動くので、育てた脳（`~/.chess-robot`）は変わりません。

@@ -1,0 +1,73 @@
+/* 画面3：Morning · Growth report（PC は詳しいレポート、スマホは要約 → Open report で詳しいレポート） */
+.mo { max-width: 1320px; margin: 0 auto; padding: 44px var(--gut) 64px; }
+.hero { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 32px; align-items: end; padding-bottom: 32px; border-bottom: 1px solid var(--ink); }
+.hero h1 { font: 300 52px/1.12 var(--f-display); margin: 18px 0 20px; max-width: 760px; letter-spacing: -0.01em; }
+.hero p { color: var(--sub); max-width: 640px; margin: 0; font-size: 15.5px; line-height: 1.7; }
+.cta { display: flex; gap: 10px; flex-wrap: wrap; }
+.btn { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; }
+
+.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px; padding: 26px 0; border-bottom: 1px solid var(--hair); margin-bottom: 40px; }
+.kpis .t { color: var(--sub); font-size: 13px; margin: 6px 0 2px; }
+.kpis .v { font: 300 48px/1.1 var(--f-display); }
+.kpis .s { color: var(--koma); font-size: 12.5px; margin-top: 4px; }
+
+.two { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 56px; margin-bottom: 44px; }
+.chart { width: 100%; height: auto; display: block; }
+.legend { display: inline-flex; align-items: center; gap: 8px; }
+.legend i { width: 14px; height: 4px; display: inline-block; }
+.legend i.old { background: #C9C5BC; }
+.legend i.new { background: var(--koma); margin-left: 8px; }
+.vh { font: 500 15px var(--f-display); margin-bottom: 10px; }
+.vrow { display: grid; grid-template-columns: minmax(0, 1fr) minmax(120px, 1.2fr) 52px; gap: 14px; align-items: center; padding: 6px 0; font-size: 14px; }
+.vrow .bars { position: relative; height: 16px; }
+.vrow .bars::after { content: ""; position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: var(--line); }
+.vrow .bars i { position: absolute; height: 5px; }
+.vrow .bars i.o { top: 2px; background: #C9C5BC; }
+.vrow .bars i.n { top: 9px; }
+.vrow .v { font: 400 12px var(--f-mono); text-align: right; }
+.empty { color: var(--sub); font-size: 14px; }
+
+.lesson { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 28px; align-items: start; }
+.lesson .mb { width: 150px; }
+.lesson .mb svg { display: block; width: 100%; }
+.lesson .k { color: var(--you); margin-bottom: 8px; }
+.lesson p { margin: 0; font-size: 14.5px; line-height: 1.7; }
+
+.timeline { position: relative; padding-left: 0; }
+.tl { display: grid; grid-template-columns: 64px 18px minmax(0, 1fr); gap: 10px; align-items: start; padding: 8px 0; font-size: 14px; position: relative; }
+.tl .d { padding-top: 2px; }
+.tl .m { position: relative; height: 100%; }
+.tl .m::before { content: ""; position: absolute; left: 8px; top: -8px; bottom: -8px; width: 1px; background: var(--line); }
+.tl:first-child .m::before { top: 10px; }
+.tl:last-child .m::before { bottom: auto; height: 18px; }
+.tl .m i { position: absolute; left: 4px; top: 5px; width: 9px; height: 9px; transform: rotate(45deg); border: 1px solid var(--ink); background: var(--bg); }
+.tl.cur .m i { background: var(--koma); border-color: var(--koma); }
+
+/* スマホ */
+.phone { display: none; }
+@media (max-width: 900px) {
+  .two { grid-template-columns: minmax(0, 1fr); gap: 40px; }
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 760px) {
+  .phone { display: flex; flex-direction: column; min-height: 100vh; min-height: 100svh; padding: 22px var(--gut) 20px; }
+  .phone-top { display: flex; justify-content: space-between; gap: 12px; }
+  .p-ring { width: min(56vw, 230px); margin: 18px auto 16px; display: block; }
+  .p-h1 { font: 300 30px/1.15 var(--f-display); margin: 0 0 12px; }
+  .p-body { color: var(--sub); font-size: 15px; line-height: 1.55; margin: 0 0 18px; }
+  .p-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; border-top: 1px solid var(--ink); border-bottom: 1px solid var(--hair); padding: 16px 0 18px; }
+  .p-stats .v { font: 300 30px/1.15 var(--f-display); margin-top: 6px; }
+  .p-stats .s { color: var(--koma); font-size: 12.5px; }
+  .p-open { margin-top: auto; justify-content: space-between; min-height: 56px; font-size: 17px; padding: 0 22px; }
+  .p-foot { text-align: center; margin-top: 12px; }
+  .p-stats { margin-bottom: 24px; }
+  .mo .hero > div:first-child { display: none; }   /* 同じ文は上の要約に出ている */
+  .mo .hero { padding-bottom: 24px; }
+  .mo { padding-top: 28px; }
+  .hero { grid-template-columns: minmax(0, 1fr); align-items: start; }
+  .hero h1 { font-size: 32px; }
+  .kpis .v { font-size: 36px; }
+  .lesson { grid-template-columns: minmax(0, 1fr); }
+  .lesson .mb { width: 180px; }
+  .cta .btn { flex: 1 1 100%; justify-content: center; }
+}

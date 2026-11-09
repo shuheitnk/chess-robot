@@ -29,6 +29,7 @@
     $("lede").textContent = st.n_cases
       ? "I rebuild the moments that went wrong in today’s games inside the simulation, and refine how I grip and carry each piece. A new skill replaces tomorrow’s only if it does better."
       : "No moves went wrong in our recent games, so tonight I’m practicing on random boards. A new skill replaces tomorrow’s only if it does better.";
+    $("h1").innerHTML = done ? "While you slept,<br>I practiced today’s mistakes." : "While you sleep,<br>I’m practicing today’s mistakes.";
     const v = $("verdict");
     v.hidden = !(done && st.message);
     v.textContent = st.message || "";

@@ -21,6 +21,11 @@ from .skill import Skill
 
 TOP_CAM = dict(distance=0.27, azimuth=180.0, elevation=-90.0)   # 盤の真上。上が1段目（ロボット側）、左が h 筋
 AUTO_FIX_MM = 2.0          # ロボットが指したあと、これ以上ずれた駒は直す
+# 取った駒のトレイの置き場 (x, |y|)。置く順（盤に近い列から）。トレイの上で、アームが真下を向いて届く範囲
+# （根元から約28cm）に、3列を半分ずらして並べる。片方の色が取られるのは最大15個（成っても駒の体は同じ）
+_TCX, _TCY = B.BOARD_CX - 0.005, B.TRAY_Y + 0.011     # トレイの中心（scene.py の tray_w / tray_b）
+TRAY_SLOTS = [(_TCX + x0 + 0.020 * i, _TCY + dy)
+              for dy, x0, n in ((-0.018, -0.053, 6), (0.0, -0.043, 5), (0.018, -0.053, 4)) for i in range(n)]
 
 
 class Game:
@@ -179,10 +184,8 @@ class Game:
     def tray_slot(self, white_piece):
         i = self.tray_used[white_piece]
         self.tray_used[white_piece] += 1
-        row, col = divmod(i, 5)
-        x = B.BOARD_CX - 0.050 + col * 0.024
-        y = (-1 if white_piece else 1) * (B.TRAY_Y + row * 0.022)
-        return np.array([x, y, B.BOARD_TOP])
+        x, y = TRAY_SLOTS[min(i, len(TRAY_SLOTS) - 1)]
+        return np.array([x, -y if white_piece else y, B.BOARD_TOP])
 
     def square_of(self):
         """body 名 → マス名（盤の上の駒だけ）"""

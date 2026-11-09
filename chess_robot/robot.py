@@ -112,6 +112,8 @@ def choose_close(target, others, ref_off, open_gap, piece_r=0.0065, pad_half_w=0
         score = min(clear, 0.02) - 0.0005 * abs(np.sin(2 * ang) - 1)
         if score > best:
             best, best_c = score, c
+    if best_c is None:     # どの向きでも真下を向いて届かない → 止まらないよう、届くかは問わずに選ぶ
+        return choose_close(target, others, ref_off, open_gap, piece_r, pad_half_w, pad_t)
     return np.array([best_c[0], best_c[1], 0.0]), best
 
 

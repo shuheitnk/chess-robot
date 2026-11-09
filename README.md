@@ -166,6 +166,7 @@ Windows では盤面を文字で表示します（大文字＝ロボット、小
 uv run python tests/test_web_play.py --text   # 画面のサーバを立ち上げ、WebSocket で数手指す（物理なし・速い）
 uv run python tests/test_web_play.py          # 同じことを物理シミュレーションありで（数分）
 uv run python tests/test_practice_cases.py    # 倒れ・ずれの判定と直し、失敗した場面の記録と再現
+uv run python tests/test_tray.py              # 取った駒15個を、ロボットが1つずつトレイへ運ぶ（約3分）
 uv run python tests/test_night.py             # 夜の練習を短く回す（2世代・候補4。数分）
 uv run python tests/test_morning.py           # 朝のレポート（記録なし／何日分かの記録）
 ```

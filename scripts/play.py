@@ -144,7 +144,8 @@ def play_cli(args, brain, g, do_sync):
     print(f"結果: {res}（{end}） / ロボットの報酬（取った点数 − 取られた点数）: {reward:+d}")
     updated = brain.learn(reward, dict(result=res, end=end, pair=pair, plies=len(board.move_stack),
                                        moves=" ".join(m.uci() for m in board.move_stack)))
-    print("頭脳を更新しました" if updated else "（この局の結果は、次の対局と比べてから学習に使います）")
+    print(f"この対局の全局面を振り返って頭脳を更新しました（これまでの局面 {brain.s.get('review_positions', 0)}）"
+          if updated else "頭脳は変わりませんでした")
     print(brain.report())
     if do_sync and sync.safe(sync.push, f"対局 {brain.s['games']}（報酬 {reward:+d}）"):
         print("[同期] GitHub の脳を更新しました")

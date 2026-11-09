@@ -17,6 +17,9 @@ _OLD = ROOT / "data"          # 以前の保存先（リポジトリの中）
 def ensure_data_dir():
     """保存先を作る。以前リポジトリの中（data/）に保存していたファイルがあれば、初回だけ移す"""
     DATA.mkdir(parents=True, exist_ok=True)
+    ignore = DATA / ".gitignore"                 # 作り直せるキャッシュは GitHub に送らない
+    if not ignore.exists():
+        ignore.write_text("cache/\n", encoding="utf-8")
     if _OLD.is_dir() and _OLD.resolve() != DATA.resolve():
         for f in _OLD.iterdir():
             if f.is_file() and not (DATA / f.name).exists():

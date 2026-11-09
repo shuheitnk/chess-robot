@@ -261,9 +261,11 @@ class Session:
         if self.g:
             self.g.case_ctx = dict(day=self.brain.day(), game=self.brain.s["games"] + 1)
             self.send_frame()
-        pair_note = ("Game 1 of a learning pair. I'm trying slightly nudged values; next game I'll try the "
-                     "opposite nudge, then keep whichever scored better." if pair == 1 else
-                     "Game 2 of a learning pair. When it ends, my brain updates on points captured − points lost.")
+        pair_note = ("After every game I review all its positions to refine my values. This is game 1 of an "
+                     "experiment pair: I'm trying slightly nudged values, and next game the opposite nudge."
+                     if pair == 1 else
+                     "After every game I review all its positions to refine my values. This is game 2 of an "
+                     "experiment pair: afterwards I keep whichever nudge scored better.")
         self.set(phase="play", result=None, koma="STANDBY", game_no=self.brain.s["games"] + 1, pair=pair, vision=None,
                  pair_note=pair_note, values=self.values(), you_text="Waiting for KOMA…",
                  say="New game. I'm white, so I'll open.", **self.header(), **self.board_state())
@@ -350,19 +352,20 @@ class Session:
         order = [i for i in np.argsort(-np.abs(diff)) if abs(diff[i]) > 1e-9][:5]
         changes = [dict(name=Bn.FEATURES_EN[i], before=round(float(w0[i]), 3), after=round(float(w1[i]), 3))
                    for i in order]
+        reviewed = int(self.brain.s.get("review_positions", 0))
         if pair == 1:
-            note = ("That was game 1 of a learning pair. I'll update my values after the next game, "
-                    "by comparing the two scores.")
-        elif updated:
-            note = "That finished a learning pair, so my values changed:"
+            note = (f"I reviewed every position of this game ({reviewed} positions so far across all our games) "
+                    "and refined my values. My experiment nudge is judged after the next game.")
         else:
-            note = "Both games of the pair scored the same, so my values stay as they were."
+            note = (f"I reviewed every position of this game ({reviewed} positions so far) and compared this "
+                    "game with the previous one to keep the better nudge.")
+        if updated:
+            note += " My values changed:"
         if self.do_sync:
             ok = sync.safe(sync.push, f"Game {self.brain.s['games']} (reward {reward:+d})")
             self.sync_state = "SYNCED" if ok else "OFFLINE"
         say = f"{text} I scored {reward:+d} (captured {cap} − lost {lost}). " + \
-              ("My values changed — see below." if changes else
-               "I'll learn from this after our next game." if pair == 1 else "My values stay the same.")
+              ("My values changed — see below." if changes else "My values stay the same.")
         self.set(koma="STANDBY", values=self.values(), **self.header(), say=say,
                  result=dict(title=text, outcome=result, reward=reward, captured=cap, lost=lost,
                              updated=bool(updated), changes=changes, note=note))

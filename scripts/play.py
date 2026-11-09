@@ -15,6 +15,7 @@ scripts/sync.py init で GitHub のリポジトリとつないでおくと、対
           resign = 投了 / quit = 学習せずに中断 / board = 盤面を表示 / help = 合法手の一覧
 """
 import argparse
+import os
 import random
 import sys
 from pathlib import Path
@@ -26,9 +27,26 @@ from chess_robot import brain as Bn  # noqa: E402
 from chess_robot import sync  # noqa: E402
 
 
+ASCII = os.name == "nt"      # Windows のターミナルは ♟ を絵文字（幅2）で表示して列がずれるので、文字で表示する
+
+
+PIECE_JA = {chess.PAWN: "ポーン", chess.KNIGHT: "ナイト", chess.BISHOP: "ビショップ",
+            chess.ROOK: "ルーク", chess.QUEEN: "クイーン", chess.KING: "キング"}
+
+
 def show(board):
     print()
-    print(board.unicode(borders=True, empty_square="·", orientation=chess.BLACK))
+    if ASCII:
+        # 大文字＝白（ロボット）、小文字＝黒（あなた）。K=キング Q=クイーン R=ルーク B=ビショップ N=ナイト P=ポーン
+        files = range(7, -1, -1)                      # あなた（黒）から見た向き：h が左
+        print("    " + " ".join(chess.FILE_NAMES[f] for f in files))
+        for r in range(8):
+            row = [(board.piece_at(chess.square(f, r)) or ".").__str__() for f in files]
+            print(f" {r + 1}  " + " ".join(row) + f"  {r + 1}")
+        print("    " + " ".join(chess.FILE_NAMES[f] for f in files))
+        print("    （大文字＝ロボット、小文字＝あなた）")
+    else:
+        print(board.unicode(borders=True, empty_square="·", orientation=chess.BLACK))
     print()
 
 
@@ -57,6 +75,15 @@ def ask(board):
             return board.parse_uci(s)
         except ValueError:
             pass
+        if s in chess.SQUARE_NAMES:
+            # マスだけ書いた（＝ポーンの手）が、ポーンでは行けない → そのマスへ行ける手を教える
+            to = chess.parse_square(s)
+            cands = [m for m in board.legal_moves if m.to_square == to]
+            if cands:
+                print(f"  {s} はポーンの手になりますが、ポーンでは行けません。{s} へ行ける手: "
+                      + " / ".join(f"{board.san(m)}（{chess.square_name(m.from_square)} の"
+                                   f"{PIECE_JA[board.piece_type_at(m.from_square)]}）" for m in cands))
+                continue
         print("  その手は指せません（help で合法手の一覧）")
 
 
@@ -68,7 +95,12 @@ def main():
     ap.add_argument("--max-plies", type=int, default=120, help="この手数で打ち切って報酬を計算")
     ap.add_argument("--force", action="store_true", help="技能の事前学習が終わっていなくても対局する")
     ap.add_argument("--no-sync", action="store_true", help="GitHub と同期しない")
+    ap.add_argument("--ascii", action="store_true", default=None, help="盤面を文字（K Q R B N P）で表示する")
+    ap.add_argument("--unicode", dest="ascii", action="store_false", help="盤面を駒の記号（♔♟）で表示する")
     args = ap.parse_args()
+    global ASCII
+    if args.ascii is not None:
+        ASCII = args.ascii
 
     do_sync = sync.enabled() and not args.no_sync
     if do_sync:

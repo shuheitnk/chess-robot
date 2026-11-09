@@ -6,7 +6,7 @@
 
 2台の PC で同期せずに別々に育ててしまったとき（履歴が分かれたとき）は、
   ・brain.json  … 対局数の多いほうを残す（同じなら GitHub 側）
-  ・history.jsonl … 両方の対局記録をまとめる
+  ・history.jsonl / practice_cases.jsonl / night_log.jsonl … 両方の記録をまとめる
   ・skill.json  … GitHub 側を残す
 で自動的にまとめる。
 """
@@ -16,6 +16,16 @@ import subprocess
 from .paths import DATA, ensure_data_dir
 
 BRANCH = "main"
+# 1行に1件の記録。2台で別々に増えたときは、両方の行をまとめる
+JSONL = {"history.jsonl": "対局の記録", "practice_cases.jsonl": "夜の練習の教材（失敗した場面）",
+         "night_log.jsonl": "夜の練習の記録"}
+
+
+def _time_of(line):
+    try:
+        return json.loads(line).get("time", "")
+    except ValueError:
+        return ""
 
 
 class SyncError(RuntimeError):
@@ -72,16 +82,17 @@ def _merge_files(ours_ref, theirs_ref):
         else:
             notes.append(f"頭脳は対局数の多い{who}の版を残しました（この PC {_games(b_o)} 局 / GitHub {_games(b_t)} 局）")
 
-    h_o, h_t = _show(ours_ref, "history.jsonl") or "", _show(theirs_ref, "history.jsonl") or ""
-    if h_o or h_t:
-        seen, lines = set(), []
-        for line in (h_t + "\n" + h_o).splitlines():
-            if line.strip() and line not in seen:
-                seen.add(line)
-                lines.append(line)
-        lines.sort(key=lambda l: json.loads(l).get("time", ""))
-        (DATA / "history.jsonl").write_text("\n".join(lines) + "\n", encoding="utf-8")
-        notes.append(f"対局の記録は両方をまとめました（{len(lines)} 局）")
+    for name, what in JSONL.items():
+        h_o, h_t = _show(ours_ref, name) or "", _show(theirs_ref, name) or ""
+        if h_o or h_t:
+            seen, lines = set(), []
+            for line in (h_t + "\n" + h_o).splitlines():
+                if line.strip() and line not in seen:
+                    seen.add(line)
+                    lines.append(line)
+            lines.sort(key=_time_of)
+            (DATA / name).write_text("\n".join(lines) + "\n", encoding="utf-8")
+            notes.append(f"{what}は両方をまとめました（{len(lines)} 件）")
 
     s_t = _show(theirs_ref, "skill.json")
     s_o = _show(ours_ref, "skill.json")

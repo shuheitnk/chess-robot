@@ -24,6 +24,9 @@ VALUE = {chess.PAWN: 1, chess.KNIGHT: 3, chess.BISHOP: 3, chess.ROOK: 5, chess.Q
 FEATURES = ["ポーン", "ナイト", "ビショップ", "ルーク", "クイーン",
             "動ける手の数", "中央の支配", "相手キング周りへの圧力", "ポーンの前進",
             "王手", "駒の展開", "ただで取られる駒"]
+FEATURES_EN = ["Pawn", "Knight", "Bishop", "Rook", "Queen",
+               "Mobility", "Center control", "Pressure on enemy king", "Pawn advance",
+               "Giving check", "Development", "Hanging pieces"]
 CENTER = [chess.D4, chess.E4, chess.D5, chess.E5]
 
 
@@ -145,6 +148,10 @@ class Brain:
     def day(self):
         born = dt.date.fromisoformat(self.s["born"])
         return (dt.date.today() - born).days + 1
+
+    def pair_game(self):
+        """今の対局が、学習の対（2局で1組）の何局目か（candidate() を呼んだあとに使う）"""
+        return 2 if self.s.get("pair_sign") == -1 else 1
 
     def candidate(self):
         """今回の対局で使う重み（今の重み ± σε）"""

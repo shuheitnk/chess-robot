@@ -3,7 +3,11 @@ import mujoco
 import numpy as np
 
 ARM = ["shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll"]
+JOINTS = ARM + ["gripper"]
 GRIP_OPEN = 0.02      # 待機中の指の開き（動作中の値は skill.py の Skill が決める）
+# 待機の姿勢：肩を横（+y 側）へ 90° 回してたたむ。盤の上を空けて、真上のカメラと人の手の邪魔をしない
+PARK = np.array([-1.57, -1.74, 1.2, 1.6, 0.0])
+PARK_LIFT = 0.10      # 待機へ向かう前に、盤からこの高さまで真上に上がる [m]
 
 
 class Arm:
@@ -213,6 +217,22 @@ class Mover:
 
     def hold(self, secs):
         self.step(int(secs / self.m.opt.timestep))
+
+    def park(self, board_top, secs=1.2):
+        """真上に上がってから、盤の横の待機姿勢へ（関節空間で動かす。指先は盤から9cmより下がらない）"""
+        cur = self.cmd_pos()
+        if cur[2] < board_top + PARK_LIFT:
+            self.line([cur[0], cur[1], board_top + PARK_LIFT], 0.3)
+        self.set_grip(GRIP_OPEN, 0.1)
+        self.go(PARK, secs)
+
+    def unpark(self, xy, board_top, secs=1.0, dz=0.09):
+        """待機姿勢から、つかむ駒の上空（盤から dz の高さ）へ"""
+        q, _, _ = self.arm.ik([xy[0], xy[1], board_top + dz], self.cmd, site="pick")
+        self.go(q, secs)
+
+    def is_parked(self):
+        return bool(np.allclose(self.cmd, PARK, atol=1e-3))
 
     def pick_place(self, src, dst, skill, others_src=(), others_dst=()):
         """src/dst: 盤面上の (x, y, 盤の高さ)。skill: 動作のパラメータ（skill.py の Skill。事前学習で決まる）。

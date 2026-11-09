@@ -1,0 +1,120 @@
+/* KOMA — 共通のスタイル（近未来・白基調の HUD。細い線、角は四角、影やグラデーションは使わない） */
+:root {
+  --bg: #F5F2EB;          /* 昼・朝 */
+  --cam: #EAE5DA;         /* カメラ映像の枠 */
+  --ink: #1C2025;
+  --sub: #5A616B;
+  --hair: #E2DFD8;        /* 細い区切り線 */
+  --line: #CFCAC0;        /* 枠線 */
+  --paper: #FFFFFF;
+  --koma: #1F6FA8;        /* KOMA（ロボット） */
+  --you: #A04E0A;         /* あなた */
+  --sq-l: #F6F4EF; --sq-d: #E3DED4;
+  --last-l: #DCEAF4; --last-d: #C5DCEC;
+  --sel: #F3DCC0;
+  --f-display: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
+  --f-body: "Inter", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+  --f-piece: "Noto Sans Symbols 2", "Segoe UI Symbol", "DejaVu Sans", sans-serif;
+  --gut: 32px;
+}
+body.night { --bg: #ECE8DF; }
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 400 15px/1.55 var(--f-body);
+  -webkit-font-smoothing: antialiased;
+}
+button { font: inherit; color: inherit; }
+a { color: inherit; }
+
+/* ラベル（等幅・大文字・字間広め） */
+.lbl, .mono {
+  font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.13em; text-transform: uppercase;
+  color: var(--sub); font-weight: 400;
+}
+.blue { color: var(--koma); }
+.amber { color: var(--you); }
+.num { font-family: var(--f-display); font-variant-numeric: tabular-nums; }
+
+/* ---------- ヘッダ ---------- */
+.top {
+  display: flex; align-items: center; gap: 22px; flex-wrap: wrap;
+  padding: 16px var(--gut); border-bottom: 1px solid var(--hair);
+}
+.brand { display: flex; align-items: center; gap: 14px; text-decoration: none; }
+.brand svg { width: 26px; height: 26px; flex: none; }
+.brand b { font: 500 16px var(--f-display); letter-spacing: 0.42em; }
+.top .divider { width: 1px; height: 18px; background: var(--line); }
+.top nav { display: flex; gap: 16px; }
+.top nav a { text-decoration: none; padding: 6px 0; border-bottom: 1px solid transparent; }
+.top nav a.on { color: var(--ink); border-bottom-color: var(--koma); }
+.top .status { margin-left: auto; display: flex; gap: 22px; flex-wrap: wrap; }
+.dia { display: inline-flex; align-items: center; gap: 8px; }
+.dia::before {
+  content: ""; width: 7px; height: 7px; transform: rotate(45deg); flex: none;
+  background: var(--koma); border: 1px solid var(--koma);
+}
+.dia.off::before { background: transparent; border-color: var(--line); }
+.dia.warn::before { background: var(--you); border-color: var(--you); }
+
+/* ---------- セクションの見出し：01 ラベル ──── 補足 ---------- */
+.sh { display: flex; align-items: center; gap: 12px; margin: 0 0 18px; min-width: 0; }
+.sh .n { color: var(--koma); }
+.sh .rule { flex: 1; height: 1px; background: var(--hair); min-width: 16px; }
+.sh .r { text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---------- 角だけのブラケット ---------- */
+.brk { position: relative; }
+.brk > i.c { position: absolute; width: 16px; height: 16px; border: 0 solid var(--ink); pointer-events: none; }
+.brk > i.tl { top: -10px; left: -10px; border-top-width: 1px; border-left-width: 1px; }
+.brk > i.tr { top: -10px; right: -10px; border-top-width: 1px; border-right-width: 1px; }
+.brk > i.bl { bottom: -10px; left: -10px; border-bottom-width: 1px; border-left-width: 1px; }
+.brk > i.br { bottom: -10px; right: -10px; border-bottom-width: 1px; border-right-width: 1px; }
+.brk.inset > i.tl { top: 10px; left: 10px; } .brk.inset > i.tr { top: 10px; right: 10px; }
+.brk.inset > i.bl { bottom: 10px; left: 10px; } .brk.inset > i.br { bottom: 10px; right: 10px; }
+.brk.blue > i.c { border-color: var(--koma); }
+.brk.tight > i.tl { top: -1px; left: -1px; } .brk.tight > i.br { bottom: -1px; right: -1px; }
+
+/* ---------- ボタン・チップ ---------- */
+.btn {
+  min-height: 44px; padding: 0 20px; background: var(--paper); border: 1px solid var(--line);
+  border-radius: 0; cursor: pointer; font: 500 14px var(--f-body); white-space: nowrap;
+}
+.btn:hover:not(:disabled) { border-color: var(--ink); }
+.btn:focus-visible { outline: 2px solid var(--koma); outline-offset: 2px; }
+.btn:disabled { color: #A9ADB3; cursor: default; }
+.btn.primary { background: var(--koma); border-color: var(--koma); color: #fff; }
+.btn.primary:hover:not(:disabled) { background: #185C8C; border-color: #185C8C; }
+.btn.primary:disabled { background: #9DB8CC; border-color: #9DB8CC; color: #fff; }
+.chip {
+  display: inline-flex; align-items: center; height: 30px; padding: 0 12px; border: 1px solid var(--line);
+  background: var(--paper);
+}
+.chip.live { border-color: var(--koma); color: var(--koma); }
+
+/* ---------- ゲージ・バー ---------- */
+.seg { display: grid; grid-template-columns: repeat(20, 1fr); gap: 2px; height: 10px; }
+.seg i { background: var(--hair); }
+.seg i.on { background: var(--koma); }
+.seg i.hot { background: var(--you); }
+
+.banner {
+  position: fixed; left: 50%; top: 12px; transform: translateX(-50%); z-index: 50;
+  background: var(--paper); border: 1px solid var(--you); color: var(--you); padding: 10px 16px; display: none;
+}
+.banner.show { display: block; }
+
+@media (max-width: 760px) {
+  :root { --gut: 16px; }
+  .top { gap: 12px 16px; padding: 12px var(--gut); }
+  .top .divider { display: none; }
+  .top .status { margin-left: 0; width: 100%; gap: 14px; }
+  .top .unit { width: 100%; order: 3; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}

@@ -4,10 +4,10 @@
 「移動の高さ」の8つのパラメータで決まる。これを、駒をランダムに並べた盤で
 「指定した駒を指定したマスへ動かす」課題を解かせて、CMA-ES で最適化する。
 
-課題の評価（小さいほど良い）
+課題の評価（小さいほど良い。判定は practice.py の assess で、対局と同じ基準）
   ・置いた位置のずれ（3mm以内なら成功）
   ・周りの駒を動かしてしまった量
-  ・駒が倒れたか
+  ・駒が倒れたか（運んだ駒も、周りの駒も）
   ・かかった時間（少しだけ）
 """
 import json
@@ -17,6 +17,7 @@ from pathlib import Path
 import mujoco
 import numpy as np
 
+from . import practice as P
 from . import robot as R
 from . import scene as B
 from .paths import DATA, ensure_data_dir
@@ -84,11 +85,9 @@ class TaskEnv:
         self.qadr = {n: self.m.jnt_qposadr[self.m.joint(n).id] for n in self.names}
         self.home, _, _ = self.arm.ik([0.2, 0.0, 0.13], [0, -1, 1, 1, 0])
 
-    def reset(self, rng, n_pieces):
+    def reset(self, rng, n_pieces, parked=False):
         mujoco.mj_resetData(self.m, self.d)
-        self.d.qpos[self.arm.qadr] = self.home
-        self.d.ctrl[:5] = self.home
-        self.d.ctrl[5] = R.GRIP_OPEN
+        self._arm_to(R.PARK if parked else self.home)
         squares = rng.permutation(64)
         used = list(rng.permutation(len(self.names))[:n_pieces])
         for k, name in enumerate(self.names):
@@ -111,26 +110,54 @@ class TaskEnv:
         name = self.names[used[0]]
         return name, B.square_xy(target % 8, target // 8)
 
-    def run(self, skill, rng, n_pieces):
-        name, (tx, ty) = self.reset(rng, n_pieces)
+    def run(self, skill, rng, n_pieces, parked=False):
+        """ランダムな盤の課題を1つ解く。parked=True なら、対局と同じく待機姿勢から始める"""
+        name, (tx, ty) = self.reset(rng, n_pieces, parked)
+        return self._carry(skill, name, np.array([tx, ty, B.BOARD_TOP]), True, parked)
+
+    def reset_case(self, case, rng=None, jitter=0.0):
+        """対局で失敗した場面（practice_cases.jsonl の1件）の配置を作り直す。アームは待機姿勢から。
+        jitter [m]: 駒の位置に足すばらつき（同じ場面の少し違う形で練習・テストするため）"""
+        mujoco.mj_resetData(self.m, self.d)
+        self._arm_to(R.PARK)
+        placed = set()
+        for k, (name, x, y, yaw) in enumerate(case["layout"]):
+            if rng is not None and jitter > 0:
+                x += rng.uniform(-jitter, jitter); y += rng.uniform(-jitter, jitter)
+            self.d.qpos[self.qadr[name]:self.qadr[name] + 7] = [x, y, B.BOARD_TOP, np.cos(yaw / 2), 0, 0, np.sin(yaw / 2)]
+            placed.add(name)
+        for k, name in enumerate(self.names):
+            if name not in placed:
+                self.d.qpos[self.qadr[name]:self.qadr[name] + 7] = [-1.0 - 0.05 * k, 1.0, 0.0, 1, 0, 0, 0]
+        mujoco.mj_forward(self.m, self.d)
+        for _ in range(200):
+            mujoco.mj_step(self.m, self.d)
+
+    def run_case(self, skill, case, rng=None, jitter=0.0):
+        """失敗した場面を作り直して、同じ動作をもう一度やってみる"""
+        self.reset_case(case, rng, jitter)
+        dst = np.array([case["dst"][0], case["dst"][1], B.BOARD_TOP])
+        return self._carry(skill, case["piece"], dst, case.get("dst_on_board", True), True)
+
+    def _arm_to(self, q):
+        self.d.qpos[self.arm.qadr] = q
+        self.d.ctrl[:5] = q
+        self.d.ctrl[5] = R.GRIP_OPEN
+
+    def _carry(self, skill, name, dst, dst_on_board, parked):
         on_board = [n for n in self.names if self.d.body(n).xpos[0] > 0]
         before = {n: self.d.body(n).xpos.copy() for n in on_board}
-        others = [before[n][:2] for n in on_board if n != name]
+        others = [n for n in on_board if n != name]
+        others_xy = [before[n][:2] for n in others]
         src = np.array([before[name][0], before[name][1], B.BOARD_TOP])
-        dst = np.array([tx, ty, B.BOARD_TOP])
         mv = R.Mover(self.m, self.d, self.arm, None)
         t0 = self.d.time
-        mv.pick_place(src, dst, skill, others, others)
+        if parked:
+            mv.cmd = R.PARK.copy()
+            mv.unpark(src, B.BOARD_TOP)
+        mv.pick_place(src, dst, skill, others_xy, others_xy)
         mv.hold(0.3)
-        p = self.d.body(name).xpos
-        err = float(np.hypot(p[0] - tx, p[1] - ty))
-        upright = abs(p[2] - B.BOARD_TOP) < 0.002
-        disturb = sum(float(np.linalg.norm(self.d.body(n).xpos - before[n])) for n in on_board if n != name)
-        dur = self.d.time - t0
-        ok = err < 0.003 and upright and disturb < 0.003
-        cost = min(err, 0.05) / 0.003 + 2.0 * (not upright) + min(disturb, 0.1) / 0.003 + 0.02 * dur
-        return dict(cost=float(cost), success=bool(ok), err_mm=round(err * 1000, 2),
-                    disturb_mm=round(disturb * 1000, 2), upright=bool(upright), time_s=round(float(dur), 2))
+        return P.assess(self.d, name, dst, before, others, dst_on_board=dst_on_board, duration=self.d.time - t0)
 
 
 def evaluate(u, seed, n_tasks, n_pieces):

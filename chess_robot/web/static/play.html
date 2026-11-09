@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KOMA · Play</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+Symbols+2&family=Space+Grotesk:wght@300;400;500&display=swap">
+<link rel="stylesheet" href="/koma.css">
+<link rel="stylesheet" href="/play.css">
+</head>
+<body>
+<div class="banner" id="banner">DISCONNECTED — IS PLAY.PY STILL RUNNING? RETRYING…</div>
+
+<header class="top">
+  <a class="brand" href="/play"><span data-logo></span><b>KOMA</b></a>
+  <span class="lbl">Chess companion</span>
+  <span class="divider"></span>
+  <span class="lbl unit" id="unit">Unit SO-101 · Day — · Game —</span>
+  <div class="status lbl">
+    <span class="dia off" id="st-arm">Arm —</span>
+    <span class="dia off" id="st-vision">Vision —</span>
+    <span class="dia off" id="st-brain">Brain —</span>
+  </div>
+</header>
+
+<main class="play">
+  <!-- 左：カメラと関節 -->
+  <section class="col left">
+    <div class="sh lbl"><span class="n">01</span><span>Vision</span><span class="rule"></span><span class="r" id="cam-rate">Top cam · —</span></div>
+    <div class="cam inset" data-brk>
+      <div class="cam-view" id="cam-view">
+        <img id="cam-img" alt="Top-down view of the board from the simulation">
+        <svg id="cam-grid" viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-hidden="true"></svg>
+        <div class="cam-tag lbl" id="cam-tag" hidden></div>
+      </div>
+      <div class="cam-empty lbl" id="cam-empty">[ Camera feed — simulation ]<br>waiting for the first frame…</div>
+      <div class="cam-foot lbl" id="cam-foot">Grid 8×8 · Pieces —</div>
+    </div>
+
+    <div class="sh lbl act-head"><span class="n">02</span><span>Actuators</span><span class="rule"></span><span class="r" id="act-state">— · Err — mm</span></div>
+    <div class="act" id="act"></div>
+    <p class="note lbl" id="act-note">Load = actuator force ÷ its limit (simulation). Temperatures appear only on the real arm.</p>
+  </section>
+
+  <!-- 中央：盤 -->
+  <section class="col center">
+    <div class="who koma-row">
+      <span class="badge koma"><i></i></span>
+      <div><div class="who-name">KOMA</div><div class="lbl" id="koma-sub">White · Depth —</div></div>
+      <span class="chip lbl" id="koma-chip">Standby</span>
+    </div>
+
+    <div class="board-wrap" data-brk>
+      <div class="ranks lbl" id="ranks"></div>
+      <div class="board" id="board" role="grid" aria-label="Chess board, black at the bottom"></div>
+      <div class="files lbl" id="files"></div>
+      <div class="promo" id="promo" hidden></div>
+    </div>
+
+    <div class="who you-row">
+      <span class="badge you"><i></i></span>
+      <div><div class="who-name">You</div><div class="you-text" id="you-text">—</div></div>
+      <div class="actions">
+        <button class="btn" id="btn-fix">Fix board</button>
+        <button class="btn" id="btn-resign">Resign</button>
+        <button class="btn" id="btn-quit" title="Stop this game without learning from it">Quit</button>
+        <button class="btn primary" id="btn-again" hidden>Play again</button>
+      </div>
+    </div>
+
+    <div class="result" id="result" hidden></div>
+  </section>
+
+  <!-- 右：相棒 -->
+  <section class="col right">
+    <div class="sh lbl"><span class="n">03</span><span>Companion</span><span class="rule"></span><span class="r" id="age">Age —</span></div>
+    <div class="companion">
+      <svg class="hud" id="hud" viewBox="0 0 120 120" aria-hidden="true"></svg>
+      <div>
+        <div class="koma-name">KOMA</div>
+        <div class="sub">Grows only by playing you</div>
+        <div class="lbl blue" id="games">Games — · Pair —/2</div>
+      </div>
+    </div>
+
+    <div class="say brk tight" id="say-box"><i class="c tl"></i><i class="c br"></i><p id="say">—</p></div>
+
+    <div class="eval">
+      <div class="row-lbl"><span class="lbl">Evaluation</span><span class="lbl blue" id="eval-txt">—</span></div>
+      <svg class="gauge" id="gauge" viewBox="0 0 340 24" preserveAspectRatio="none" aria-hidden="true"></svg>
+    </div>
+
+    <div class="values">
+      <div class="row-lbl"><span class="h">What I value now</span><span class="lbl">Weights · Top 5</span></div>
+      <div id="values"></div>
+    </div>
+
+    <div class="moves">
+      <div class="row-lbl"><span class="h">Moves</span><span class="lbl" id="ply">Ply —</span></div>
+      <div id="moves" class="move-list"></div>
+      <p class="pair-note" id="pair-note"></p>
+    </div>
+  </section>
+</main>
+
+<script src="/koma.js"></script>
+<script src="/play.js"></script>
+</body>
+</html>

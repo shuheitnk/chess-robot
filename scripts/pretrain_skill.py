@@ -17,6 +17,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from chess_robot import skill as K  # noqa: E402
+from chess_robot import sync  # noqa: E402
 
 
 def job(args):
@@ -68,6 +69,8 @@ def main():
                 "final_tasks": [{k: v for k, v in r.items()} for r in res]})
     print(f"\n最終テスト（駒24個・12課題）の成功率 {succ:.2f} → {'安定' if stable else 'まだ不安定'}")
     print(json.dumps(final.__dict__, indent=2))
+    if sync.enabled():
+        sync.safe(sync.push, "技能の事前学習")
 
 
 if __name__ == "__main__":

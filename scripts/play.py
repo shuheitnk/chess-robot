@@ -8,6 +8,9 @@
   uv run python scripts/play.py --text       # 物理なし（盤面の文字表示だけ）。たくさん対局して育てたいとき
   uv run python scripts/play.py --record game.mp4   # 対局の動画も保存する
 
+scripts/sync.py init で GitHub のリポジトリとつないでおくと、対局の前に GitHub の脳を取ってきて、
+対局の後に送る（別の PC で育てた脳で続きを指せる）。
+
 手の入力: e5 や Nf6 のような棋譜表記、または e7e5 のような形式。
           resign = 投了 / quit = 学習せずに中断 / board = 盤面を表示 / help = 合法手の一覧
 """
@@ -20,6 +23,7 @@ import chess
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from chess_robot import brain as Bn  # noqa: E402
+from chess_robot import sync  # noqa: E402
 
 
 def show(board):
@@ -52,8 +56,12 @@ def main():
     ap.add_argument("--depth", type=int, default=2, help="読みの深さ（手数）")
     ap.add_argument("--max-plies", type=int, default=120, help="この手数で打ち切って報酬を計算")
     ap.add_argument("--force", action="store_true", help="技能の事前学習が終わっていなくても対局する")
+    ap.add_argument("--no-sync", action="store_true", help="GitHub と同期しない")
     args = ap.parse_args()
 
+    do_sync = sync.enabled() and not args.no_sync
+    if do_sync:
+        sync.safe(sync.pull)
     brain = Bn.Brain()
     print("=" * 50)
     print(brain.report())
@@ -118,6 +126,8 @@ def main():
                                        moves=" ".join(m.uci() for m in board.move_stack)))
     print("頭脳を更新しました" if updated else "（この局の結果は、次の対局と比べてから学習に使います）")
     print(brain.report())
+    if do_sync and sync.safe(sync.push, f"対局 {brain.s['games']}（報酬 {reward:+d}）"):
+        print("[同期] GitHub の脳を更新しました")
     if g and args.record:
         g.hold(1.0)
         g.close()

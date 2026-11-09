@@ -70,6 +70,21 @@ uv run python scripts/play.py               # 対局！（ロボット＝白、�
 別の場所に置きたいときは、環境変数 `CHESS_ROBOT_DATA` にフォルダを指定します（Google Drive などの同期フォルダにすれば、別の PC でも同じ頭脳を育てられます）。
 以前の版でリポジトリの中の `data/` に保存していたファイルは、初回の起動時に自動で移されます。
 
+### 脳を GitHub で持ち運ぶ（別の PC で続きを指す）
+
+GitHub で空のリポジトリ（例：`chess-robot-brain`、非公開がおすすめ）を作り、それぞれの PC で1回だけつなぎます。
+
+```bash
+uv run python scripts/sync.py init https://github.com/<ユーザ名>/chess-robot-brain.git
+```
+
+あとは `scripts/play.py` が、対局の前に GitHub の脳を取ってきて、対局の後に送ります（`--no-sync` で止められます）。
+技能（`skill.json`）も一緒に運ばれるので、事前学習は1台でやれば十分です。
+
+- 手動で同期：`scripts/sync.py pull` / `scripts/sync.py push`、状態の確認：`scripts/sync.py status`
+- オフラインのときは同期をとばして、その PC に保存します。次の対局のときに送ります
+- 2台で同期せずに別々に育ててしまったときは、頭脳は対局数の多いほうを残し、対局の記録は両方をまとめます
+
 手の入力は `e5` `Nf6` のような棋譜表記か `e7e5` の形式。`resign`（投了）、`quit`（学習せずに中断）、`help`（合法手の一覧）。
 
 ## 見た目

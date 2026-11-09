@@ -47,22 +47,37 @@
 
   <!-- 中央：盤 -->
   <section class="col center">
+    <div class="side-bar">
+      <span class="lbl" id="side-lbl">First move</span>
+      <div class="side-seg" role="radiogroup" aria-labelledby="side-lbl">
+        <button role="radio" data-first="koma" aria-checked="false">KOMA</button>
+        <button role="radio" data-first="you" aria-checked="false">You</button>
+      </div>
+      <span class="lbl side-note" id="side-note"></span>
+    </div>
+
     <div class="who koma-row">
       <span class="badge koma"><i></i></span>
-      <div><div class="who-name">KOMA</div><div class="lbl" id="koma-sub">White · Depth —</div></div>
+      <div class="who-main">
+        <div class="who-name">KOMA</div><div class="lbl" id="koma-sub">— · Depth —</div>
+        <div class="taken" id="taken-koma"></div>
+      </div>
       <span class="chip lbl" id="koma-chip">Standby</span>
     </div>
 
     <div class="board-wrap" data-brk>
       <div class="ranks lbl" id="ranks"></div>
-      <div class="board" id="board" role="grid" aria-label="Chess board, black at the bottom"></div>
+      <div class="board" id="board" role="grid" aria-label="Chess board, your pieces at the bottom"></div>
       <div class="files lbl" id="files"></div>
       <div class="promo" id="promo" hidden></div>
     </div>
 
     <div class="who you-row">
       <span class="badge you"><i></i></span>
-      <div><div class="who-name">You</div><div class="you-text" id="you-text">—</div></div>
+      <div class="who-main">
+        <div class="who-name">You</div><div class="you-text" id="you-text">—</div>
+        <div class="taken" id="taken-you"></div>
+      </div>
       <div class="actions">
         <button class="btn" id="btn-fix">Fix board</button>
         <button class="btn" id="btn-resign">Resign</button>

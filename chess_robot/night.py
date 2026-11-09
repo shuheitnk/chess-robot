@@ -74,15 +74,18 @@ def better(a, b):
 
 # ---------------------------------------------------------------- 画面用の小道具
 def mini_board(case):
-    """場面の駒の配置を、だいたいのマスに直す（小さな盤の絵に使う）"""
+    """場面の駒の配置を、だいたいのマスに直す（小さな盤の絵に使う）。KOMA が黒の対局では盤が180°回っている"""
+    koma_white = case.get("koma", "white") != "black"
     sq = {}
     for name, x, y, _ in case["layout"]:
         rank = int(round((x - B.X0) / B.S - 0.5))
         file = int(round(3.5 - y / B.S))
+        if not koma_white:
+            rank, file = 7 - rank, 7 - file
         if 0 <= rank < 8 and 0 <= file < 8:
             ch = name[1].upper() if name[0] == "w" else name[1]
             sq["abcdefgh"[file] + str(rank + 1)] = ch
-    return dict(squares=sq, frm=case.get("from"), to=case.get("to"))
+    return dict(squares=sq, frm=case.get("from"), to=case.get("to"), koma_white=koma_white)
 
 
 def case_view(case, status):

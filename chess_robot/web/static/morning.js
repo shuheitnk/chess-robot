@@ -113,17 +113,18 @@
       $("lesson").innerHTML = `<div class="mb brk"><i class="c tl"></i><i class="c br"></i>${board({})}</div><p class="empty">No lesson yet. My values first move after we finish a pair of games.</p>`;
       return;
     }
-    $("lesson").innerHTML = `<div class="mb brk"><i class="c tl"></i><i class="c br"></i>${board(l.board || {})}</div>
+    $("lesson").innerHTML = `<div class="mb brk"><i class="c tl"></i><i class="c br"></i>${board(l.board || {}, l.koma_white !== false)}</div>
       <div><div class="lbl k">Game ${KOMA.pad(l.game, 3)} · ${KOMA.esc(l.result)} · Reward ${sgn(l.reward, 0)}</div><p>${KOMA.esc(l.text)}</p></div>`;
   }
 
-  function board(pos) {
+  function board(pos, komaWhite = true) {
+    const V = KOMA.view(komaWhite);          // あなたの駒が手前。KOMA の駒は青
     let s = "";
     for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
-      const fi = 7 - c, sq = "abcdefgh"[fi] + (r + 1);
-      s += `<rect x="${c * 18}" y="${r * 18}" width="18" height="18" fill="${(fi + r) % 2 === 0 ? "#E3DED4" : "#F6F4EF"}"/>`;
+      const sq = V.files[c] + V.ranks[r], fi = "abcdefgh".indexOf(sq[0]), ri = Number(sq[1]) - 1;
+      s += `<rect x="${c * 18}" y="${r * 18}" width="18" height="18" fill="${(fi + ri) % 2 === 0 ? "#E3DED4" : "#F6F4EF"}"/>`;
       const ch = pos[sq];
-      if (ch) s += `<circle cx="${c * 18 + 9}" cy="${r * 18 + 9}" r="4.2" fill="${ch === ch.toUpperCase() ? "#1F6FA8" : "#1C2025"}"/>`;
+      if (ch) s += `<circle cx="${c * 18 + 9}" cy="${r * 18 + 9}" r="4.2" fill="${(ch === ch.toUpperCase()) === komaWhite ? "#1F6FA8" : "#1C2025"}"/>`;
     }
     return `<svg viewBox="0 0 144 144" aria-label="Final position">${s}</svg>`;
   }

@@ -37,14 +37,22 @@ def _when(rec):
         return None
 
 
-RESULT_TEXT = {"0-1": "You won", "1-0": "I won", "1/2-1/2": "Draw", "*": "Move limit"}
+def _koma_white(rec):
+    """その対局で KOMA が白だったか（色の記録がない対局は白。先手を選べるようになる前）"""
+    return rec.get("koma", "white") != "black"
+
+
+def _koma_won(rec):
+    return rec.get("result") == ("1-0" if _koma_white(rec) else "0-1")
 
 
 def _result_text(rec):
     if rec.get("end") == "resign":
         return "You resigned"
     r = rec.get("result", "")
-    return RESULT_TEXT.get(r, r or "—")
+    if r in ("1-0", "0-1"):
+        return "I won" if _koma_won(rec) else "You won"
+    return {"1/2-1/2": "Draw", "*": "Move limit"}.get(r, r or "—")
 
 
 def _verb(name, before, after):
@@ -120,7 +128,7 @@ def morning():
             lesson = dict(game=r.get("game"), day=r.get("day"), result=_result_text(r), reward=r.get("reward"),
                           feature=names[i], before=round(float(prev[i]), 2), after=round(float(w[i]), 2),
                           partner_reward=partner.get("reward") if partner else None,
-                          board=_final_board(r.get("moves", "")))
+                          board=_final_board(r.get("moves", "")), koma_white=_koma_white(r))
         prev = w
     if lesson:
         t = (f"Game {lesson['game']} ({lesson['result'].lower()}, reward {lesson['reward']:+d}) closed a learning pair "
@@ -226,7 +234,7 @@ def _timeline(brain, hist, nights, names, born):
             once("update", r, "My values changed for the first time.")
         if r["reward"] > 0:
             once("reward", r, f"First game where I captured more than I lost (reward {r['reward']:+d}).")
-        if r.get("result") == "1-0" and r.get("end") == "checkmate":
+        if _koma_won(r) and r.get("end") == "checkmate":
             once("win", r, "Checkmated you for the first time.")
         by_day.setdefault(r.get("day"), []).append(r)
         w = np.array(r.get("w", []), float)

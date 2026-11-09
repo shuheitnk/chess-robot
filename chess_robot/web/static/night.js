@@ -131,14 +131,16 @@
   }
 
   function miniBoard(b) {
+    const komaWhite = b.koma_white !== false;
+    const V = KOMA.view(komaWhite);          // あなたの駒が手前。KOMA の駒は青
     let s = "";
     for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
-      const fi = 7 - c, sq = "abcdefgh"[fi] + (r + 1);
-      const dark = (fi + r) % 2 === 0;
+      const sq = V.files[c] + V.ranks[r], fi = "abcdefgh".indexOf(sq[0]), ri = Number(sq[1]) - 1;
+      const dark = (fi + ri) % 2 === 0;
       const hl = sq === b.frm || sq === b.to;
       s += `<rect x="${c * 5.5}" y="${r * 5.5}" width="5.5" height="5.5" fill="${hl ? "#C5DCEC" : dark ? "#E3DED4" : "#F6F4EF"}"/>`;
       const ch = b.squares[sq];
-      if (ch) s += `<circle cx="${c * 5.5 + 2.75}" cy="${r * 5.5 + 2.75}" r="1.6" fill="${ch === ch.toUpperCase() ? "#1F6FA8" : "#1C2025"}"/>`;
+      if (ch) s += `<circle cx="${c * 5.5 + 2.75}" cy="${r * 5.5 + 2.75}" r="1.6" fill="${(ch === ch.toUpperCase()) === komaWhite ? "#1F6FA8" : "#1C2025"}"/>`;
     }
     return `<svg viewBox="0 0 44 44" aria-hidden="true">${s}<rect x="0.25" y="0.25" width="43.5" height="43.5" fill="none" stroke="#CFCAC0" stroke-width="0.5"/></svg>`;
   }

@@ -1,4 +1,4 @@
-"""ロボット「KOMA」と対戦する（KOMA＝白、あなた＝黒）
+"""ロボット「KOMA」と対戦する（先手＝白は、画面の First move か --first で選ぶ。最初は KOMA が先手）
 
 対局が終わるたびに、報酬（取った点数 − 取られた点数）で KOMA の頭脳が学習し、~/.chess-robot/ に保存される（リポジトリを消しても残る）。
 同じ KOMA と日をまたいで対局を続けるほど、少しずつ強くなっていく。
@@ -6,6 +6,7 @@
 実行例:
   uv run python scripts/play.py              # ブラウザに KOMA の画面が開く。盤をクリックして指す。MuJoCo の3Dは別ウィンドウ
   uv run python scripts/play.py --text       # 物理なし（同じ画面で指す）。たくさん対局して育てたいとき
+  uv run python scripts/play.py --first you  # あなたが先手（白）。--first koma で KOMA が先手。選んだほうを覚えておく
   uv run python scripts/play.py --cli        # 画面を使わず、ターミナルでキーボード入力（以前の方式）
   uv run python scripts/play.py --lan        # 同じネットワークのスマホからも開けるようにする
   uv run python scripts/play.py --record game.mp4   # 対局の動画も保存する
@@ -27,7 +28,7 @@ import chess
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from chess_robot import brain as Bn  # noqa: E402
 from chess_robot import sync  # noqa: E402
-from chess_robot.session import game_outcome  # noqa: E402
+from chess_robot.session import caption, game_outcome, load_first, save_first  # noqa: E402
 
 ASCII = os.name == "nt"      # Windows のターミナルは ♟ を絵文字（幅2）で表示して列がずれるので、文字で表示する
 
@@ -36,19 +37,21 @@ PIECE_JA = {chess.PAWN: "ポーン", chess.KNIGHT: "ナイト", chess.BISHOP: "�
 
 
 # ================================================================ ターミナルで指す（--cli）
-def show(board):
+def show(board, koma=chess.WHITE):
+    """あなたから見た向き（あなたの駒が手前）で盤を表示する"""
     print()
     if ASCII:
-        # 大文字＝白（ロボット）、小文字＝黒（あなた）。K=キング Q=クイーン R=ルーク B=ビショップ N=ナイト P=ポーン
-        files = range(7, -1, -1)                      # あなた（黒）から見た向き：h が左
+        # 大文字＝白、小文字＝黒。K=キング Q=クイーン R=ルーク B=ビショップ N=ナイト P=ポーン
+        files = range(7, -1, -1) if koma == chess.WHITE else range(8)      # あなたが黒なら h が左
+        ranks = range(8) if koma == chess.WHITE else range(7, -1, -1)      # あなたが黒なら 1 段目が上
         print("    " + " ".join(chess.FILE_NAMES[f] for f in files))
-        for r in range(8):
+        for r in ranks:
             row = [(board.piece_at(chess.square(f, r)) or ".").__str__() for f in files]
             print(f" {r + 1}  " + " ".join(row) + f"  {r + 1}")
         print("    " + " ".join(chess.FILE_NAMES[f] for f in files))
-        print("    （大文字＝ロボット、小文字＝あなた）")
+        print("    （大文字＝ロボット、小文字＝あなた）" if koma == chess.WHITE else "    （大文字＝あなた、小文字＝ロボット）")
     else:
-        print(board.unicode(borders=True, empty_square="·", orientation=chess.BLACK))
+        print(board.unicode(borders=True, empty_square="·", orientation=not koma))
     print()
 
 
@@ -83,14 +86,14 @@ def parse_move(board, s):
     return None
 
 
-def ask(board, g):
-    show(board)
+def ask(board, g, koma):
+    show(board, koma)
     while True:
         s = input("あなたの手 > ").strip()
         if s in ("resign", "quit"):
             return s
         if s == "board":
-            show(board); continue
+            show(board, koma); continue
         if s == "help":
             print(" ".join(board.san(m) for m in board.legal_moves)); continue
         if s == "fix":
@@ -101,20 +104,22 @@ def ask(board, g):
             return mv
 
 
-def play_cli(args, brain, g, do_sync):
+def play_cli(args, brain, g, do_sync, koma):
     board = g.board if g else chess.Board()
     w = brain.candidate()
     pair = brain.pair_game()
+    color = "white" if koma == chess.WHITE else "black"
+    print("KOMA が先手（白）です" if koma == chess.WHITE else "あなたが先手（白）です")
     if g:
-        g.case_ctx = dict(day=brain.day(), game=brain.s["games"] + 1)
+        g.case_ctx = dict(day=brain.day(), game=brain.s["games"] + 1, koma=color)
     rng = random.Random()
     result = None
     while not board.is_game_over() and len(board.move_stack) < args.max_plies:
-        if board.turn == chess.WHITE:
+        if board.turn == koma:
             mv, _ = Bn.choose_move(board, w, depth=args.depth, rng=rng)
             print(f"ロボット: {board.san(mv)}")
             if g:
-                g.caption = f"{board.fullmove_number}. {board.san(mv)}"
+                g.caption = caption(board, board.san(mv))
                 g.sub = f"Day {brain.day()}  game {brain.s['games'] + 1}"
                 rep = g.play(mv, by_robot=True)
                 for r in rep["failed"]:
@@ -125,24 +130,24 @@ def play_cli(args, brain, g, do_sync):
             else:
                 board.push(mv)
         else:
-            mv = ask(board, g)
+            mv = ask(board, g, koma)
             if mv in ("resign", "quit"):
                 result = mv
                 break
             if g:
-                g.caption = f"{board.fullmove_number}... {board.san(mv)}"
+                g.caption = caption(board, board.san(mv))
                 g.play(mv, by_robot=False)
             else:
                 board.push(mv)
 
-    show(board)
+    show(board, koma)
     if result == "quit":
         print("中断しました（この対局は学習に使いません）")
         return
-    reward = Bn.material_reward(board, chess.WHITE)
-    res, end, text = game_outcome(board, result == "resign", args.max_plies)
+    reward = Bn.material_reward(board, koma)
+    res, end, text = game_outcome(board, result == "resign", args.max_plies, koma)
     print(f"結果: {res}（{end}） / ロボットの報酬（取った点数 − 取られた点数）: {reward:+d}")
-    updated = brain.learn(reward, dict(result=res, end=end, pair=pair, plies=len(board.move_stack),
+    updated = brain.learn(reward, dict(result=res, end=end, pair=pair, plies=len(board.move_stack), koma=color,
                                        moves=" ".join(m.uci() for m in board.move_stack)))
     print(f"この対局の全局面を振り返って頭脳を更新しました（これまでの局面 {brain.s.get('review_positions', 0)}）"
           if updated else "頭脳は変わりませんでした")
@@ -162,6 +167,8 @@ def main():
     ap.add_argument("--cli", "--keyboard", dest="cli", action="store_true",
                     help="ブラウザの画面を使わず、ターミナルで手をキーボード入力する")
     ap.add_argument("--record", default=None, help="対局の動画を保存するファイル名（例: game.mp4）")
+    ap.add_argument("--first", choices=["koma", "you"], default=None,
+                    help="先手（白）。koma＝KOMA が先手、you＝あなたが先手。省略すると前回選んだほう（最初は koma）")
     ap.add_argument("--depth", type=int, default=2, help="読みの深さ（手数）")
     ap.add_argument("--max-plies", type=int, default=120, help="この手数で打ち切って報酬を計算")
     ap.add_argument("--force", action="store_true", help="技能の事前学習が終わっていなくても対局する")
@@ -194,15 +201,18 @@ def main():
         print("=" * 50)
         print(brain.report())
         print("=" * 50)
+        if args.first:
+            save_first(args.first)
+        koma = chess.WHITE if (args.first or load_first()) == "koma" else chess.BLACK
         g = None
         if not args.text:
             from chess_robot.sim_game import Game
-            g = Game(record=args.record, skill=skill, log_cases=True)
+            g = Game(record=args.record, skill=skill, log_cases=True, koma_white=koma == chess.WHITE)
             if not args.record and not args.no_viewer:
                 import mujoco.viewer
                 viewer = mujoco.viewer.launch_passive(g.m, g.d)
                 g.viewer_sync = viewer.sync
-        play_cli(args, brain, g, do_sync)
+        play_cli(args, brain, g, do_sync, koma)
         return
 
     # 画面（ブラウザ）で指す：物理と対局の進行はこのスレッド、Web サーバは別スレッド
@@ -210,7 +220,7 @@ def main():
     from chess_robot.session import Session
     from chess_robot.web.server import Hub, serve
     session = Session(physics=not args.text, depth=args.depth, max_plies=args.max_plies, do_sync=do_sync,
-                      record=args.record, viewer=not args.no_viewer, skill=skill)
+                      record=args.record, viewer=not args.no_viewer, skill=skill, first=args.first)
     hub = Hub(on_message=session.submit, welcome=session.welcome)
     session.hub = hub
     _, url = serve(hub, reports.PAGES, reports.APIS, host="0.0.0.0" if args.lan else "127.0.0.1",

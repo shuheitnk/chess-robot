@@ -4,6 +4,7 @@
   指し終えたら盤の横の待機姿勢に戻る（真上のカメラと人の手の邪魔をしない）
 ・ユーザの手：見えない手が駒を持ち上げて置く（盤の上をふわっと移動するアニメーション）
 ・取られた駒は盤の横のトレイへ、キャスリングではルークも動かす
+・KOMA が黒のときは、盤と駒を180°回して置く（KOMA の駒がロボット側、あなたの駒が向こう側）
 ・ロボットが1回運ぶたびに結果を判定し、失敗（倒した・ずらした）したら、その場面を夜の練習の教材として記録する
 ・ロボットが指すたびに、ずれた駒・倒れた駒を正しいマスへ戻す
 """
@@ -29,9 +30,11 @@ TRAY_SLOTS = [(_TCX + x0 + 0.020 * i, _TCY + dy)
 
 
 class Game:
-    def __init__(self, record=None, size=(1280, 720), skill=None, fps=30, log_cases=False):
+    def __init__(self, record=None, size=(1280, 720), skill=None, fps=30, log_cases=False, koma_white=True):
         """record: 動画の保存先（None なら録画しない）。フレームはその場でファイルに書き出す
-        log_cases: ロボットが運ぶのに失敗した場面を practice_cases.jsonl に記録する"""
+        log_cases: ロボットが運ぶのに失敗した場面を practice_cases.jsonl に記録する
+        koma_white: KOMA（ロボット）が白か。黒なら盤を180°回して置く"""
+        self.koma_white = koma_white
         self.m = mujoco.MjModel.from_xml_path(str(B.SCENE))
         self.d = mujoco.MjData(self.m)
         self.arm = R.Arm(self.m, self.d)
@@ -67,9 +70,18 @@ class Game:
                 self.font = self.font_s = ImageFont.load_default()
         self.reset()
 
-    def reset(self):
-        """駒を初期配置に戻し、アームを待機姿勢にする（次の対局）"""
-        mujoco.mj_resetData(self.m, self.d)          # 駒は XML に書いた初期のマスへ戻る
+    def reset(self, koma_white=None):
+        """駒を初期配置に戻し、アームを待機姿勢にする（次の対局）。koma_white で KOMA の色を変えられる"""
+        if koma_white is not None:
+            self.koma_white = koma_white
+        mujoco.mj_resetData(self.m, self.d)          # 駒は XML に書いた初期のマス（白がロボット側）へ戻る
+        self.up = np.array([1.0, 0, 0, 0]) if self.koma_white else np.array([0.0, 0, 0, 1])   # 駒の向き（黒番は180°）
+        if not self.koma_white:                      # KOMA が黒：盤の中心のまわりに180°回す
+            for n in self.names:
+                a = self.qadr[n]
+                q = np.zeros(4)
+                mujoco.mju_mulQuat(q, self.up, self.d.qpos[a + 3:a + 7].copy())
+                self.d.qpos[a:a + 7] = [2 * B.BOARD_CX - self.d.qpos[a], -self.d.qpos[a + 1], self.d.qpos[a + 2], *q]
         self.d.qpos[self.arm.qadr] = R.PARK
         self.d.ctrl[:5] = R.PARK
         self.d.ctrl[5] = R.GRIP_OPEN
@@ -118,14 +130,15 @@ class Game:
         b = np.asarray(after, float).mean(axis=2)
         h, w = a.shape
         diff = {}
-        for col in range(8):                     # 左から h → a
-            for row in range(8):                 # 上から 1 → 8
+        files, ranks = ("hgfedcba", "12345678") if self.koma_white else ("abcdefgh", "87654321")
+        for col in range(8):                     # 左から（KOMA が白なら h → a）
+            for row in range(8):                 # 上（ロボット側）から（KOMA が白なら 1 → 8）
                 u0 = g["left"] + (g["right"] - g["left"]) * (col + 0.2) / 8
                 u1 = g["left"] + (g["right"] - g["left"]) * (col + 0.8) / 8
                 v0 = g["top"] + (g["bottom"] - g["top"]) * (row + 0.2) / 8
                 v1 = g["top"] + (g["bottom"] - g["top"]) * (row + 0.8) / 8
                 ys, xs = slice(int(v0 * h), int(v1 * h)), slice(int(u0 * w), int(u1 * w))
-                diff["hgfedcba"[col] + str(row + 1)] = float(np.abs(a[ys, xs] - b[ys, xs]).mean())
+                diff[files[col] + ranks[row]] = float(np.abs(a[ys, xs] - b[ys, xs]).mean())
         top = max(diff.values())
         if top < 4.0:                            # ほとんど変わっていない
             return []
@@ -143,7 +156,7 @@ class Game:
         return self.top_r.render().copy()
 
     def top_grid(self):
-        """真上の画像の中で盤が写っている範囲（0〜1 の割合）。左＝h 筋の端、上＝1段目の端"""
+        """真上の画像の中で盤が写っている範囲（0〜1 の割合）。上がロボット側（KOMA が白なら左＝h 筋、上＝1段目）"""
         k = 1.0 / (2 * TOP_CAM["distance"] * np.tan(np.radians(self.m.vis.global_.fovy) / 2))
         half = 4 * B.S
         return dict(left=0.5 - half * k, right=0.5 + half * k,
@@ -170,7 +183,8 @@ class Game:
 
     # ------------------------------------------------------------ 位置
     def xy(self, sq):
-        x, y = B.square_xy(chess.square_file(sq), chess.square_rank(sq))
+        f, r = chess.square_file(sq), chess.square_rank(sq)
+        x, y = B.square_xy(f, r) if self.koma_white else B.square_xy(7 - f, 7 - r)
         return np.array([x, y, B.BOARD_TOP])
 
     def pos(self, name):
@@ -185,7 +199,8 @@ class Game:
         i = self.tray_used[white_piece]
         self.tray_used[white_piece] += 1
         x, y = TRAY_SLOTS[min(i, len(TRAY_SLOTS) - 1)]
-        return np.array([x, -y if white_piece else y, B.BOARD_TOP])
+        mine = white_piece == self.koma_white        # KOMA の駒（あなたが取った）は -y 側、あなたの駒は +y 側
+        return np.array([x, -y if mine else y, B.BOARD_TOP])
 
     def square_of(self):
         """body 名 → マス名（盤の上の駒だけ）"""
@@ -316,7 +331,7 @@ class Game:
             if bad or everything:
                 a, v = self.qadr[name], self.vadr[name]
                 x, y, _ = self.xy(sq)
-                self.d.qpos[a:a + 7] = [x, y, B.BOARD_TOP, 1, 0, 0, 0]
+                self.d.qpos[a:a + 7] = [x, y, B.BOARD_TOP, *self.up]
                 self.d.qvel[v:v + 6] = 0
                 n += bool(bad or off > 0.5)
         mujoco.mj_forward(self.m, self.d)

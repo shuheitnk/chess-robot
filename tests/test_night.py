@@ -39,14 +39,31 @@ def main():
     from chess_robot.sim_game import Game
     from chess_robot.web.server import Hub, serve
 
-    # 教材：f2 のポーンを倒した状態でロボットが e2e4 を指す → 失敗した場面として記録される
+    # 教材：ロボットが e2e4 を運んでいる最中に f2 のポーンが倒れる → 失敗した場面として記録される
+    # （指す前に倒れていた駒は、指す前に直されるので教材にならない）
     g = Game(log_cases=True)
     g.case_ctx = dict(day=1, game=1)
-    a = g.qadr[g.at[chess.F2]]
-    g.d.qpos[a + 3:a + 7] = [np.cos(np.radians(30)), np.sin(np.radians(30)), 0, 0]
-    mujoco.mj_forward(g.m, g.d)
+    count = {"n": 0}
+
+    def knock():
+        count["n"] += 1
+        if count["n"] == 150:
+            a, v = g.qadr[g.at[chess.F2]], g.vadr[g.at[chess.F2]]
+            g.d.qpos[a + 2] += 0.009
+            g.d.qpos[a + 3:a + 7] = [np.cos(np.radians(45)), np.sin(np.radians(45)), 0, 0]
+            g.d.qvel[v:v + 6] = 0
+            mujoco.mj_forward(g.m, g.d)
+    g.on_frame = knock
     g.play(chess.Move.from_uci("e2e4"), by_robot=True)
-    assert len(P.load_cases()) == 1
+    g.on_frame = None
+    assert len(P.load_cases()) == 1, P.load_cases()
+
+    # KOMA が黒の対局の場面は盤が180°回っている → 小さな盤の絵では正しいマスに戻る
+    gb = Game(koma_white=False)
+    mb = N.mini_board(dict(koma="black", layout=P.layout(gb.d, gb.names), **{"from": "e7", "to": "e5"}))
+    assert mb["squares"]["e7"] == "p" and mb["squares"]["e1"] == "K" and mb["koma_white"] is False, mb
+    assert N.mini_board(P.load_cases()[0])["squares"]["e1"] == "K"
+    print("mini boards: KOMA white and black cases map to the right squares")
     skill_before = json.loads((TMP / "skill.json").read_text())["params"]
 
     states = []

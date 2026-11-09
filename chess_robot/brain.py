@@ -138,8 +138,13 @@ def material_reward(board, me):
 
 
 # ---------------------------------------------------------------- 棋譜の振り返り
+def koma_color(rec):
+    """対局の記録から KOMA の色（記録に色がなければ白。先手・後手を選べるようになる前の対局）"""
+    return chess.BLACK if rec.get("koma") == "black" else chess.WHITE
+
+
 def game_positions(moves, me=chess.WHITE):
-    """棋譜（uci をスペース区切り）から、各手を指したあとの局面の特徴量を並べる"""
+    """棋譜（uci をスペース区切り）から、各手を指したあとの局面の特徴量（me＝KOMA から見て）を並べる"""
     b = chess.Board()
     X = []
     for u in moves.split():
@@ -186,12 +191,12 @@ class Review:
         if want[:len(self.keys)] != self.keys:     # 2台の PC の記録をまとめた等で順番が変わった → 作り直す
             self.X, self.y, self.keys = np.zeros((0, len(FEATURES))), np.zeros(0), []
         for h in hist[len(self.keys):]:
-            self.add(h["moves"], h["reward"], self.key(h), save=False)
+            self.add(h["moves"], h["reward"], self.key(h), me=koma_color(h), save=False)
         if hist:
             self.save()
 
-    def add(self, moves, reward, key, save=True):
-        X = game_positions(moves)
+    def add(self, moves, reward, key, me=chess.WHITE, save=True):
+        X = game_positions(moves, me)
         if len(X):
             self.X = np.vstack([self.X, X])
             self.y = np.concatenate([self.y, np.full(len(X), float(reward))])
@@ -276,7 +281,7 @@ class Brain:
                    game=self.s["games"], reward=reward, **info)
         if info.get("moves"):                       # 棋譜の振り返り
             review = getattr(self, "_review", None) or Review()
-            review.add(info["moves"], reward, Review.key(rec))
+            review.add(info["moves"], reward, Review.key(rec), me=koma_color(rec))
             self.s["w_review"] = review.fit().tolist()
             self.s["review_positions"] = int(len(review.y))
             self._review = review

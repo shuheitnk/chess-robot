@@ -2,7 +2,8 @@
 "use strict";
 (() => {
   const $ = (id) => document.getElementById(id);
-  const FILES_LEFT_TO_RIGHT = "hgfedcba";          // あなた（黒）が手前：左が h
+  let komaWhite = true;         // KOMA が白か（盤の向きと駒の色を決める）
+  let V = KOMA.view(true);      // 盤の向き（あなたの駒が手前）
   const JOINTS = ["SHOULDER_PAN", "SHOULDER_LIFT", "ELBOW_FLEX", "WRIST_FLEX", "WRIST_ROLL", "GRIPPER"];
   let S = null;                 // 最新の状態
   let sel = null;               // 選んだ駒のマス
@@ -10,15 +11,19 @@
   const conn = KOMA.connect(onMessage, (ok) => $("banner").classList.toggle("show", !ok));
 
   // ---------------------------------------------------------------- 盤
-  const squares = {};
+  let squares = {};
   function buildBoard() {
     const board = $("board");
+    board.innerHTML = "";
+    squares = {};
+    V = KOMA.view(komaWhite);
+    board.setAttribute("aria-label", `Chess board, ${komaWhite ? "black" : "white"} (your pieces) at the bottom`);
     for (let r = 0; r < 8; r++) {
       for (let c = 0; c < 8; c++) {
-        const name = FILES_LEFT_TO_RIGHT[c] + (r + 1);
+        const name = V.files[c] + V.ranks[r];
         const b = document.createElement("button");
-        const fi = "abcdefgh".indexOf(name[0]);
-        b.className = "sq" + ((fi + r) % 2 === 0 ? " d" : "");
+        const fi = "abcdefgh".indexOf(name[0]), ri = Number(name[1]) - 1;
+        b.className = "sq" + ((fi + ri) % 2 === 0 ? " d" : "");
         b.dataset.sq = name;
         b.setAttribute("aria-label", name);
         b.addEventListener("click", () => clickSquare(name));
@@ -26,9 +31,12 @@
         squares[name] = b;
       }
     }
-    $("ranks").innerHTML = [1, 2, 3, 4, 5, 6, 7, 8].map((n) => `<span>${n}</span>`).join("");
-    $("files").innerHTML = [...FILES_LEFT_TO_RIGHT].map((f) => `<span>${f}</span>`).join("");
+    $("ranks").innerHTML = [...V.ranks].map((n) => `<span>${n}</span>`).join("");
+    $("files").innerHTML = [...V.files].map((f) => `<span>${f}</span>`).join("");
   }
+
+  // あなたの駒か（KOMA が白なら小文字＝黒の駒）
+  const isMine = (ch) => !!ch && (ch === ch.toUpperCase()) !== komaWhite;
 
   function legalFrom(sq) {
     return (S && S.legal ? S.legal : []).filter((u) => u.slice(0, 2) === sq);
@@ -46,15 +54,15 @@
       el.classList.toggle("check", S.check === name);
       const isTarget = targets.includes(name);
       el.classList.toggle("cap", isTarget && !!ch);
-      el.classList.toggle("can", canPlay && ((ch && ch === ch.toLowerCase() && legalFrom(name).length > 0) || isTarget));
+      el.classList.toggle("can", canPlay && ((isMine(ch) && legalFrom(name).length > 0) || isTarget));
       let html = "";
       if (ch) {
-        const g = KOMA.glyph(ch);
+        const g = KOMA.glyph(ch, komaWhite);
         html += `<span class="${g.cls}">${g.text}</span>`;
       }
       if (isTarget && !ch) html += `<span class="dot"></span>`;
       el.innerHTML = html;
-      const who = ch ? (ch === ch.toUpperCase() ? "KOMA's " : "your ") : "";
+      const who = ch ? (isMine(ch) ? "your " : "KOMA's ") : "";
       el.setAttribute("aria-label", `${name} ${ch ? who + PIECE[ch.toLowerCase()] : "empty"}${isTarget ? ", can move here" : ""}`);
     }
   }
@@ -70,7 +78,7 @@
       if (moves.length > 1) return showPromo(name, moves);
     }
     const ch = pos[name];
-    sel = ch && ch === ch.toLowerCase() && legalFrom(name).length && sel !== name ? name : null;
+    sel = isMine(ch) && legalFrom(name).length && sel !== name ? name : null;
     drawBoard();
   }
 
@@ -88,7 +96,7 @@
       const u = moves.find((m) => m[4] === p);
       if (!u) continue;
       const b = document.createElement("button");
-      b.textContent = KOMA.glyph(p).text;
+      b.textContent = KOMA.glyph(komaWhite ? p : p.toUpperCase(), komaWhite).text;
       b.setAttribute("aria-label", "Promote to " + PIECE[p]);
       b.addEventListener("click", () => { hidePromo(); send(u); });
       box.appendChild(b);
@@ -130,7 +138,7 @@
     const ticks = [0, 85, 170, 255, 340].map((x) => `<path d="M${x} ${x === 170 ? 5 : 8}v${x === 170 ? 14 : 8}" stroke="#CFCAC0" stroke-width="1"/>`).join("");
     let mark = "";
     if (ev && (ev.v !== null || ev.mate)) {
-      const t = ev.mate ? (ev.mate === "koma" ? 1 : -1) : Math.tanh(ev.v / 3);
+      const t = ev.mate ? (ev.mate === "koma" ? 1 : -1) : Math.tanh((ev.koma ?? ev.v) / 3);   // 右が KOMA、左があなた
       const x = 170 + 168 * t;
       const col = t >= 0 ? "#1F6FA8" : "#A04E0A";
       mark = `<path d="M170 12H${x.toFixed(1)}" stroke="${col}" stroke-width="3"/>
@@ -161,13 +169,37 @@
     let html = "";
     for (let i = 0; i < m.length; i += 2) {
       const last = m.length - 1;
-      const cls = (k) => (k === last ? (k % 2 === 0 ? "hl-koma" : "hl-you") : "");
+      const cls = (k) => (k === last ? ((k % 2 === 0) === komaWhite ? "hl-koma" : "hl-you") : "");
       html += `<span class="no">${i / 2 + 1}</span><span class="${cls(i)}">${KOMA.esc(m[i])}</span><span class="${cls(i + 1)}">${KOMA.esc(m[i + 1] || "")}</span>`;
     }
     const box = $("moves");
     box.innerHTML = html || `<span class="no">—</span><span></span><span></span>`;
     box.scrollTop = box.scrollHeight;
     $("ply").textContent = `Ply ${m.length} / ${S.max_plies ?? "—"}`;
+  }
+
+  // ---------------------------------------------------------------- 先手と、取った駒
+  function drawSide() {
+    const next = S.next_first || S.first;
+    document.querySelectorAll(".side-seg button").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.first === next)));
+    let note = "";
+    if (S.first && next && next !== S.first) note = "From the next game";
+    else if (next) note = next === "you" ? "You play white" : "KOMA plays white";
+    $("side-note").textContent = note;
+  }
+
+  function drawTaken() {
+    const t = S.taken || { koma: [], you: [], koma_pts: 0, you_pts: 0 };
+    const row = (id, pcs, mine, lead, cls, who) => {
+      const el = $(id);
+      const lbl = `<span class="lbl">Captured</span>`;
+      if (!pcs.length) { el.innerHTML = `${lbl}<span class="lbl none">none yet</span>`; el.setAttribute("aria-label", `${who} captured nothing yet`); return; }
+      const glyphs = pcs.map((c) => { const g = KOMA.glyph(c, komaWhite); return `<span class="${g.cls.split(" ")[1]}">${g.text}</span>`; }).join("");
+      el.innerHTML = `${lbl}<span class="pcs">${glyphs}</span>${lead > 0 ? `<span class="adv ${cls}">+${lead}</span>` : ""}`;
+      el.setAttribute("aria-label", `${who} captured ${pcs.length} piece${pcs.length > 1 ? "s" : ""} (${mine} points)`);
+    };
+    row("taken-koma", t.koma, t.koma_pts, t.koma_pts - t.you_pts, "blue", "KOMA");
+    row("taken-you", t.you, t.you_pts, t.you_pts - t.koma_pts, "amber", "You");
   }
 
   // ---------------------------------------------------------------- 左：カメラと関節
@@ -185,7 +217,7 @@
     const vis = S.vision;
     if (vis && vis.changed && vis.changed.length) {
       const sq = (S.last && vis.changed.includes(S.last.to)) ? S.last.to : vis.changed[vis.changed.length - 1];
-      const col = FILES_LEFT_TO_RIGHT.indexOf(sq[0]), row = Number(sq[1]) - 1;
+      const col = V.files.indexOf(sq[0]), row = V.ranks.indexOf(sq[1]);
       const cx = X(g.left + (g.right - g.left) * (col + 0.5) / 8), cy = Y(g.top + (g.bottom - g.top) * (row + 0.5) / 8);
       const right = cx < 560;
       mark = `<rect x="${cx - 16}" y="${cy - 16}" width="32" height="32" fill="none" stroke="#1F6FA8" stroke-width="3" transform="rotate(45 ${cx} ${cy})" vector-effect="non-scaling-stroke"/>
@@ -243,6 +275,8 @@
 
   function render() {
     const physics = S.mode === "physics";
+    const kw = S.koma_color !== "black";
+    if (kw !== komaWhite) { komaWhite = kw; buildBoard(); }
     $("unit").textContent = `Unit SO-101 · Day ${KOMA.pad(S.day)} · Game ${KOMA.pad(S.game_no, 3)}`;
     setDia("st-arm", physics ? "on" : "off", physics ? "Arm online" : "Arm off · text mode");
     setDia("st-vision", physics ? "on" : "off", physics ? "Vision tracking" : "Vision off");
@@ -250,7 +284,9 @@
                    "NOT SYNCING": ["off", "Sync off"] }[S.sync] || ["off", "Brain —"];
     setDia("st-brain", sync[0], sync[1]);
 
-    $("koma-sub").textContent = `White · Depth ${S.depth ?? "—"}`;
+    $("koma-sub").textContent = `${S.koma_color ? (komaWhite ? "White" : "Black") : "—"} · Depth ${S.depth ?? "—"}`;
+    drawSide();
+    drawTaken();
     const chip = $("koma-chip");
     chip.textContent = S.koma || "—";
     chip.className = "chip lbl" + (S.koma === "THINKING" || S.koma === "LEARNING" ? " thinking" : S.koma === "MOVING" ? " moving" : "");
@@ -324,6 +360,10 @@
     if (confirm("Quit this game? KOMA won't learn from it.")) conn.send({ type: "quit" });
   });
   $("btn-again").addEventListener("click", () => conn.send({ type: "new" }));
+  document.querySelectorAll(".side-seg button").forEach((b) => b.addEventListener("click", () => {
+    if (!S || b.getAttribute("aria-checked") === "true") return;
+    conn.send({ type: "side", first: b.dataset.first });
+  }));
 
   buildBoard();
   drawHud(false);

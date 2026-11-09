@@ -28,11 +28,17 @@ const KOMA = (() => {
   }
   const pad = (n, w = 2) => (n === null || n === undefined ? "—" : String(n).padStart(w, "0"));
 
-  // 駒：KOMA（白）は輪郭の記号を青、あなた（黒）は塗りの記号を墨色
-  function glyph(ch) {
+  // 駒の記号：白は輪郭、黒は塗り。色は持ち主で、KOMA の駒は青（pc k）、あなたの駒は墨色（pc y）
+  function glyph(ch, komaWhite = true) {
     const white = ch === ch.toUpperCase();
     const k = ch.toLowerCase();
-    return { text: (white ? OUTLINE[k] : FILLED[k]) + VS, cls: white ? "pc w" : "pc b" };
+    return { text: (white ? OUTLINE[k] : FILLED[k]) + VS, cls: white === komaWhite ? "pc k" : "pc y" };
+  }
+
+  // 盤の向き：あなたの駒が手前。files＝左から右、ranks＝上から下
+  // （KOMA が白なら左が h・上が1段目。黒なら左が a・上が8段目。真上のカメラの映像も同じ向き）
+  function view(komaWhite = true) {
+    return komaWhite ? { files: "hgfedcba", ranks: "12345678" } : { files: "abcdefgh", ranks: "87654321" };
   }
 
   function fenBoard(fen) {
@@ -71,5 +77,5 @@ const KOMA = (() => {
     document.querySelectorAll("[data-brk]").forEach(brackets);
   });
 
-  return { logo, brackets, fmt, pad, glyph, fenBoard, connect, esc };
+  return { logo, brackets, fmt, pad, glyph, view, fenBoard, connect, esc };
 })();

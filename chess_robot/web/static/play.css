@@ -47,6 +47,30 @@
 .you-row { margin-top: 34px; flex-wrap: wrap; }
 .you-text { color: var(--you); font-size: 14px; }
 .actions { margin-left: auto; display: flex; gap: 10px; flex-wrap: wrap; }
+.who-main { min-width: 0; flex: 1 1 auto; }
+
+/* ---------- 取った駒（持ち主の色：KOMA が取ったのはあなたの駒＝墨色、あなたが取ったのは KOMA の駒＝青） ---------- */
+.taken { display: flex; align-items: center; flex-wrap: wrap; gap: 2px 8px; min-height: 26px; margin-top: 4px; }
+.taken .pcs { font: 20px/1 var(--f-piece); letter-spacing: -0.06em; }
+.taken .pcs .k { color: var(--koma); }
+.taken .pcs .y { color: var(--ink); }
+.taken .adv { font: 500 12px var(--f-mono); }
+.taken .none { text-transform: none; letter-spacing: 0.02em; }
+
+/* ---------- 先手を選ぶ ---------- */
+.side-bar { display: flex; align-items: center; gap: 8px 14px; flex-wrap: wrap; margin-bottom: 26px; }
+.side-seg { display: inline-flex; border: 1px solid var(--line); background: var(--paper); }
+.side-seg button {
+  height: 30px; padding: 0 14px; border: 0; background: transparent; cursor: pointer;
+  font: 400 11px var(--f-mono); letter-spacing: 0.13em; text-transform: uppercase; color: var(--sub);
+}
+.side-seg button + button { border-left: 1px solid var(--line); }
+.side-seg button:hover { color: var(--ink); }
+.side-seg button:focus-visible { outline: 2px solid var(--koma); outline-offset: 2px; }
+.side-seg button[data-first="koma"][aria-checked="true"] { background: var(--koma); color: #fff; }
+.side-seg button[data-first="you"][aria-checked="true"] { background: var(--you); color: #fff; }
+.side-note { text-transform: none; letter-spacing: 0.02em; }
+
 .chip.thinking { border-color: var(--koma); color: var(--koma); }
 .chip.moving { border-color: var(--koma); background: var(--koma); color: #fff; }
 
@@ -72,8 +96,8 @@
 .sq.can { cursor: pointer; }
 .sq:focus-visible { outline: 2px solid var(--you); outline-offset: -2px; z-index: 1; }
 .pc { font-family: var(--f-piece); font-size: 9.2cqw; line-height: 1; pointer-events: none; }
-.pc.w { color: var(--koma); }
-.pc.b { color: var(--ink); }
+.pc.k { color: var(--koma); }
+.pc.y { color: var(--ink); }
 .sq .dot {                     /* 行けるマス：琥珀色の小さなひし形 */
   position: absolute; width: 18%; height: 18%; background: var(--you); transform: rotate(45deg); pointer-events: none;
 }
@@ -145,6 +169,7 @@
   .left { display: block; }
   .left > .act-head { margin-top: 36px; }
   .koma-row { margin-bottom: 22px; }
+  .side-bar { margin-bottom: 20px; }
   .you-row { margin-top: 26px; }
   .actions { margin-left: 0; width: 100%; display: grid; grid-template-columns: repeat(3, 1fr); }
   .actions .btn { padding: 0 8px; }

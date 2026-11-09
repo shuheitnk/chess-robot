@@ -41,11 +41,22 @@ def ask(board):
             show(board); continue
         if s == "help":
             print(" ".join(board.san(m) for m in board.legal_moves)); continue
-        for parse in (board.parse_san, board.parse_uci):
-            try:
-                return parse(s)
-            except ValueError:
-                pass
+        try:
+            return board.parse_san(s)
+        except chess.AmbiguousMoveError:
+            # 同じマスへ行ける駒が複数ある（例：2つのナイトが e6 へ行ける）→ どの駒かを聞く
+            to = chess.parse_square(s.rstrip("+#")[-2:])
+            kind = chess.PIECE_SYMBOLS.index(s[0].lower())
+            cands = [m for m in board.legal_moves if m.to_square == to and board.piece_type_at(m.from_square) == kind]
+            print(f"  {s} に行ける駒が{len(cands)}つあります。どちらか指定してください: "
+                  + " / ".join(f"{board.san(m)}（{chess.square_name(m.from_square)} の駒）" for m in cands))
+            continue
+        except ValueError:
+            pass
+        try:
+            return board.parse_uci(s)
+        except ValueError:
+            pass
         print("  その手は指せません（help で合法手の一覧）")
 
 

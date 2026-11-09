@@ -153,12 +153,20 @@ class Game:
                 worst, who = e, chess.square_name(sq)
         return worst, who
 
-    def fix(self, tol_mm=4.0):
-        """ずれた駒を正しいマスへ戻す（実機なら人が直す）。直した数を返す"""
+    def fallen(self, max_tilt_deg=10.0):
+        """倒れている（傾いている）盤上の駒のマス名の一覧"""
+        c = np.cos(np.radians(max_tilt_deg))
+        return [chess.square_name(sq) for sq, name in self.at.items()
+                if self.d.body(name).xmat[8] < c]        # 駒の上向きの軸と真上のなす角
+
+    def fix(self, tol_mm=4.0, max_tilt_deg=10.0):
+        """ずれた駒・倒れた駒を正しいマスへ立て直す（実機なら人が直す）。直した数を返す"""
+        c = np.cos(np.radians(max_tilt_deg))
         n = 0
         for sq, name in self.at.items():
             if np.hypot(*(self.d.body(name).xpos[:2] - self.xy(sq)[:2])) * 1000 > tol_mm \
-                    or abs(self.d.body(name).xpos[2] - B.BOARD_TOP) > 0.002:
+                    or abs(self.d.body(name).xpos[2] - B.BOARD_TOP) > 0.002 \
+                    or self.d.body(name).xmat[8] < c:
                 a, v = self.qadr[name], self.vadr[name]
                 x, y, _ = self.xy(sq)
                 self.d.qpos[a:a + 7] = [x, y, B.BOARD_TOP, 1, 0, 0, 0]

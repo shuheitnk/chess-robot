@@ -144,9 +144,9 @@ def play_cli(args, brain, g, do_sync, koma):
     if result == "quit":
         print("中断しました（この対局は学習に使いません）")
         return
-    reward = Bn.material_reward(board, koma)
+    reward = Bn.game_reward(board, koma, resigned=result == "resign")
     res, end, text = game_outcome(board, result == "resign", args.max_plies, koma)
-    print(f"結果: {res}（{end}） / ロボットの報酬（取った点数 − 取られた点数）: {reward:+d}")
+    print(f"結果: {res}（{end}） / ロボットの報酬（取った点数 − 取られた点数 ± 詰みの {Bn.MATE_BONUS} 点）: {reward:+d}")
     updated = brain.learn(reward, dict(result=res, end=end, pair=pair, plies=len(board.move_stack), koma=color,
                                        moves=" ".join(m.uci() for m in board.move_stack)))
     print(f"この対局の全局面を振り返って頭脳を更新しました（これまでの局面 {brain.s.get('review_positions', 0)}）"

@@ -434,7 +434,8 @@ class Session:
                      say="Let's stop here. I won't learn from this game.")
             return
         result, end, text = game_outcome(b, resigned, self.max_plies, self.koma)
-        reward = Bn.material_reward(b, self.koma)
+        reward = Bn.game_reward(b, self.koma, resigned=resigned)
+        mate = Bn.mate_points(b, self.koma, resigned=resigned)
         cap, lost = material(b, self.koma)
         pair = self.brain.pair_game()
         self.set(phase="over", koma="LEARNING", you_text=text, say=f"{text} Let me learn from this game…",
@@ -460,7 +461,9 @@ class Session:
         if self.do_sync:
             ok = sync.safe(sync.push, f"Game {self.brain.s['games']} (reward {reward:+d})")
             self.sync_state = "SYNCED" if ok else "OFFLINE"
-        say = f"{text} I scored {reward:+d} (captured {cap} − lost {lost}). " + \
+        mate_text = (f" {mate:+d} for checkmate" if mate and not resigned else
+                     f" {mate:+d} for your resignation" if mate else "")
+        say = f"{text} I scored {reward:+d} (captured {cap} − lost {lost}{mate_text}). " + \
               ("My values changed — see below." if changes else "My values stay the same.")
         self.set(koma="STANDBY", values=self.values(), **self.header(), say=say,
                  result=dict(title=text, outcome=result, reward=reward, captured=cap, lost=lost,

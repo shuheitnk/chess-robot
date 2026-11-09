@@ -3,6 +3,7 @@
 ・盤面の評価は「特徴量 × 重み」の足し算。重みは最初すべて 0（＝何も知らない。合法手をランダムに指すのと同じ）
 ・2手先まで読む（自分の手 → 相手の返し）アルファベータ探索で、評価が一番高い手を選ぶ
 ・報酬は「ゲーム終了時に取った駒の点数 − 取られた駒の点数」（P=1, N=3, B=3, R=5, Q=9）
+  ＋ 詰み（キングを取ること）の点：詰ませたら +39、詰まされたら −39（相手の投了は詰ませたのと同じ）
 ・重み w = w_review（振り返りで決まる土台）＋ delta（進化戦略で探す上乗せ）
   1. 棋譜の振り返り：これまでの全対局の全局面について「この局面の特徴量から、その局の最終的な報酬を当てる」
      ように w_review を当てはめ直す（リッジ回帰）。1局から数十の局面を学べるので、少ない対局で育つ
@@ -23,7 +24,7 @@ from .paths import DATA, ensure_data_dir
 
 BRAIN_FILE = DATA / "brain.json"
 HISTORY_FILE = DATA / "history.jsonl"
-REVIEW_FILE = DATA / "cache" / "review.npz"
+REVIEW_FILE = DATA / "cache" / "review_v2.npz"   # v2：報酬に詰みの点を含む（v1 のキャッシュは使わず作り直す）
 RIDGE = 0.01            # 振り返りの回帰の正則化（局面数あたり）
 
 VALUE = {chess.PAWN: 1, chess.KNIGHT: 3, chess.BISHOP: 3, chess.ROOK: 5, chess.QUEEN: 9, chess.KING: 0}
@@ -137,6 +138,31 @@ def material_reward(board, me):
     return lost(not me) - lost(me)
 
 
+MATE_BONUS = 39         # 詰み（＝キングを取ること）の点。盤上の駒を全部取ったのと同じ重さ
+
+
+def mate_points(board, me, resigned=False):
+    """詰ませたら +MATE_BONUS、詰まされたら −MATE_BONUS。相手（ユーザ）の投了は詰ませたのと同じに数える"""
+    if resigned:
+        return MATE_BONUS
+    if board.is_checkmate():
+        return -MATE_BONUS if board.turn == me else MATE_BONUS
+    return 0
+
+
+def game_reward(board, me, resigned=False):
+    """報酬 ＝ 取った駒の点数 − 取られた駒の点数 ± 詰みの点"""
+    return material_reward(board, me) + mate_points(board, me, resigned)
+
+
+def reward_from_record(rec, me):
+    """対局の記録（棋譜と終わり方）から報酬を計算し直す。報酬の決め方を変えても昔の対局を同じ物差しで振り返れる"""
+    b = chess.Board()
+    for u in rec["moves"].split():
+        b.push(chess.Move.from_uci(u))
+    return game_reward(b, me, resigned=rec.get("end") == "resign")
+
+
 # ---------------------------------------------------------------- 棋譜の振り返り
 def koma_color(rec):
     """対局の記録から KOMA の色（記録に色がなければ白。先手・後手を選べるようになる前の対局）"""
@@ -191,7 +217,8 @@ class Review:
         if want[:len(self.keys)] != self.keys:     # 2台の PC の記録をまとめた等で順番が変わった → 作り直す
             self.X, self.y, self.keys = np.zeros((0, len(FEATURES))), np.zeros(0), []
         for h in hist[len(self.keys):]:
-            self.add(h["moves"], h["reward"], self.key(h), me=koma_color(h), save=False)
+            me = koma_color(h)
+            self.add(h["moves"], reward_from_record(h, me), self.key(h), me=me, save=False)
         if hist:
             self.save()
 

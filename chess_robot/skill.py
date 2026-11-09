@@ -19,8 +19,8 @@ import numpy as np
 
 from . import robot as R
 from . import scene as B
+from .paths import DATA, ensure_data_dir
 
-DATA = B.ROOT / "data"
 SKILL_FILE = DATA / "skill.json"
 
 # 各パラメータの探索範囲（学習は [0,1] に正規化した空間で行う）
@@ -66,7 +66,7 @@ class Skill:
         return cls(), None
 
     def save(self, info):
-        DATA.mkdir(exist_ok=True)
+        ensure_data_dir()
         params = {k: float(v) for k, v in asdict(self).items()}
         SKILL_FILE.write_text(json.dumps({"params": params, **info}, indent=2, ensure_ascii=False, default=float))
 

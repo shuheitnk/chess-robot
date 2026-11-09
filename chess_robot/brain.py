@@ -6,7 +6,7 @@
     1局目は 重み + σε、2局目は 重み − σε で指し、
     報酬が良かった向きへ重みを動かす（w ← w + lr · sign(R⁺ − R⁻) · ε）
 ・報酬は「ゲーム終了時に取った駒の点数 − 取られた駒の点数」（P=1, N=3, B=3, R=5, Q=9）
-・学習の材料はユーザとの対戦だけ。状態は data/brain.json に保存し、日をまたいで育ち続ける
+・学習の材料はユーザとの対戦だけ。状態は ~/.chess-robot/brain.json に保存し、日をまたいで育ち続ける
 """
 import datetime as dt
 import json
@@ -15,9 +15,8 @@ import random
 import chess
 import numpy as np
 
-from .scene import ROOT
+from .paths import DATA, ensure_data_dir
 
-DATA = ROOT / "data"
 BRAIN_FILE = DATA / "brain.json"
 HISTORY_FILE = DATA / "history.jsonl"
 
@@ -171,7 +170,7 @@ class Brain:
             self.s["pair_sign"] = None
             self.s["pair_r_plus"] = None
             updated = step != 0
-        DATA.mkdir(exist_ok=True)
+        ensure_data_dir()
         BRAIN_FILE.write_text(json.dumps(self.s, indent=2, ensure_ascii=False))
         rec = dict(time=dt.datetime.now().isoformat(timespec="seconds"), day=self.day(),
                    game=self.s["games"], reward=reward, updated=bool(updated), w=self.s["w"], **info)

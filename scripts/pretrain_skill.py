@@ -2,7 +2,7 @@
 
 実行例:
   uv run python scripts/pretrain_skill.py --gens 15 --workers 2
-結果は data/skill.json に保存され、対戦（scripts/play.py）でこの技能が使われる。
+結果は ~/.chess-robot/skill.json に保存され、対戦（scripts/play.py）でこの技能が使われる。
 成功率が --target 以上になったら「安定した」とみなして終了する。
 """
 import argparse
@@ -40,7 +40,6 @@ def main():
     es = cma.CMAEvolutionStrategy(u0, 0.25, {"popsize": args.popsize, "bounds": [0, 1],
                                              "seed": args.seed + 1, "verbose": -9})
     log = []
-    K.DATA.mkdir(exist_ok=True)
     print(f"初期値: {K.Skill.from_unit(u0)}")
     with Pool(args.workers) as pool:
         for gen in range(args.gens):

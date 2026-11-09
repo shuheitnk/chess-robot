@@ -73,6 +73,7 @@ def append_case(case):
     ensure_data_dir()
     case = dict(case)
     case.setdefault("time", dt.datetime.now().isoformat(timespec="seconds"))
+    case["id"] = f"{case['time']}#{case.get('id', '')}"        # 別の PC の記録と重ならないように時刻を付ける
     with open(CASES_FILE, "a", encoding="utf-8") as f:
         f.write(json.dumps(case, ensure_ascii=False) + "\n")
     return case

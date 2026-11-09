@@ -63,9 +63,10 @@ a { color: inherit; }
 
 /* ---------- セクションの見出し：01 ラベル ──── 補足 ---------- */
 .sh { display: flex; align-items: center; gap: 12px; margin: 0 0 18px; min-width: 0; }
+.sh > span { white-space: nowrap; }
 .sh .n { color: var(--koma); }
 .sh .rule { flex: 1; height: 1px; background: var(--hair); min-width: 16px; }
-.sh .r { text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sh .r { text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 
 /* ---------- 角だけのブラケット ---------- */
 .brk { position: relative; }

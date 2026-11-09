@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KOMA · Night Practice</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+Symbols+2&family=Space+Grotesk:wght@300;400;500&display=swap">
+<link rel="stylesheet" href="/koma.css">
+<link rel="stylesheet" href="/night.css">
+</head>
+<body class="night">
+<header class="top">
+  <a class="brand" href="/play"><span data-logo></span><b>KOMA</b></a>
+  <span class="divider"></span>
+  <span class="lbl blue unit" id="unit">Night practice · Day —</span>
+  <nav class="lbl"><a href="/play">Play</a><a class="on" href="/night">Night</a></nav>
+  <div class="status lbl">
+    <span class="dia off">Arm resting</span>
+    <span class="dia" id="st-phase">—</span>
+    <span id="st-start">—</span>
+  </div>
+</header>
+
+<main class="night-main">
+  <section class="hero">
+    <div class="hero-text">
+      <div class="lbl" id="clock">— —</div>
+      <h1>While you sleep,<br>I’m practicing today’s mistakes.</h1>
+      <p id="lede">I rebuild the moments that went wrong in today’s games inside the simulation, and refine how I grip and
+        carry each piece. A new skill replaces tomorrow’s only if it does better.</p>
+      <p class="verdict" id="verdict" hidden></p>
+    </div>
+    <svg class="ring" id="ring" viewBox="0 0 220 220" role="img" aria-label="Success rate"></svg>
+  </section>
+
+  <section class="gens-sec">
+    <div class="sh lbl"><span class="n">01</span><span>CMA-ES</span><span class="rule"></span><span class="r" id="gen-lbl">—</span></div>
+    <div class="gens" id="gens"></div>
+    <div class="lbl prog" id="prog"></div>
+  </section>
+
+  <div class="two">
+    <section>
+      <div class="sh lbl"><span class="n">02</span><span>Progress</span><span class="rule"></span><span class="r">Success rate by generation</span></div>
+      <svg class="chart" id="chart" viewBox="0 0 520 170" aria-label="Success rate by generation"></svg>
+      <div class="stats" id="stats"></div>
+    </section>
+    <section>
+      <div class="sh lbl"><span class="n">03</span><span>Cases</span><span class="rule"></span><span class="r" id="cases-lbl">—</span></div>
+      <div id="cases"></div>
+    </section>
+  </div>
+
+  <div class="two bottom">
+    <section>
+      <div class="sh lbl"><span class="n">04</span><span>Best candidate</span><span class="rule"></span><span class="r" id="best-lbl">So far tonight</span></div>
+      <div class="params" id="params"></div>
+    </section>
+    <aside class="dashed">At night I train only my hands. How I think about chess — my brain — learns only from our games during the day.</aside>
+  </div>
+</main>
+
+<script src="/koma.js"></script>
+<script src="/night.js"></script>
+</body>
+</html>
